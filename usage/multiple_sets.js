@@ -33,12 +33,6 @@ if (typeof window !== "undefined") {
     toolSets: [
       {
         name: "Editing Tools",
-        navigationButton: {
-          label: "View",
-          icon: "navigation.angle_right",
-          tooltip: "Switch to view tools",
-          targetSet: "next", // Can be "next", "previous", or a specific index like 1
-        },
         tools: [
           {
             id: "undo",
@@ -81,16 +75,18 @@ if (typeof window !== "undefined") {
             shortcut: "Ctrl+V",
             action: () => console.log("Paste"),
           },
+          { type: "separator" },
+          {
+            id: "next-set",
+            label: "More",
+            icon: "navigation.angle_right",
+            tooltip: "Next tools",
+            action: () => basicToolbar.nextToolSet(),
+          },
         ],
       },
       {
         name: "View Tools",
-        navigationButton: {
-          label: "Settings",
-          icon: "utils.settings",
-          tooltip: "Go to settings",
-          targetSet: "next", // Go to specific set index
-        },
         tools: [
           {
             id: "theme-toggle",
@@ -132,16 +128,18 @@ if (typeof window !== "undefined") {
             tooltip: "Zoom out",
             action: () => console.log("Zoom out"),
           },
+          { type: "separator" },
+          {
+            id: "next-set-2",
+            label: "More",
+            icon: "navigation.angle_right",
+            tooltip: "Next tools",
+            action: () => basicToolbar.nextToolSet(),
+          },
         ],
       },
       {
         name: "Settings Tools",
-        navigationButton: {
-          label: "Edit",
-          icon: "navigation.angle_left",
-          tooltip: "Back to editing tools",
-          targetSet: "next", // Go back to first set
-        },
         tools: [
           {
             id: "settings",
@@ -164,11 +162,19 @@ if (typeof window !== "undefined") {
             tooltip: "Info",
             action: () => console.log("Info"),
           },
+          { type: "separator" },
+          {
+            id: "back-to-first",
+            label: "Back",
+            icon: "navigation.angle_left",
+            tooltip: "Back to editing tools",
+            action: () => basicToolbar.switchToolSet(0),
+          },
         ],
       },
     ],
     defaultToolSet: 0,
-    showSetIndicator: false,
+    showSetIndicator: true,
     onToolSetChange: (setIndex, currentSet) => {
       console.log(`Switched to tool set ${setIndex}:`, currentSet.name);
     },

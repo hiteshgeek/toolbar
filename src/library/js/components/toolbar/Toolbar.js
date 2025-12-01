@@ -66,10 +66,15 @@ export default class Toolbar {
       customClass: options.customClass || "",
       tools: options.tools || [],
       groups: options.groups || [],
+      toolSets: options.toolSets || null, // Array of tool sets
+      defaultToolSet: options.defaultToolSet || 0, // Index of default set
+      showSetIndicator:
+        options.showSetIndicator !== undefined ? options.showSetIndicator : true,
       onToolClick: options.onToolClick || null,
       onStateChange: options.onStateChange || null,
       onThemeChange: options.onThemeChange || null,
       onPositionChange: options.onPositionChange || null,
+      onToolSetChange: options.onToolSetChange || null,
     };
 
     // Validate allowedSnapPositions
@@ -93,6 +98,7 @@ export default class Toolbar {
       position: { x: 0, y: 0 },
       isDragging: false,
       snapHintsVisible: false,
+      currentToolSet: this.options.defaultToolSet,
     };
 
     this.tools = new Map();
@@ -102,6 +108,7 @@ export default class Toolbar {
     this.toolsContainer = null;
     this.systemThemeListener = null;
     this.snapHintsContainer = null;
+    this.setIndicator = null;
 
     this._init();
   }
@@ -110,6 +117,7 @@ export default class Toolbar {
     this._createElements();
     this._registerTools();
     this._registerGroups();
+    this._addNavigationButton(); // Add navigation button for initial set
     this._attachEventListeners();
     this._setupSystemThemeListener();
     this._render();
@@ -236,11 +244,29 @@ export default class Toolbar {
   _applyStyles() {}
 
   _registerTools() {
-    this.options.tools.forEach((tool) => this.addTool(tool));
+    // If toolSets are defined, use the current tool set
+    if (this.options.toolSets && this.options.toolSets.length > 0) {
+      const currentSet = this.options.toolSets[this.state.currentToolSet];
+      if (currentSet && currentSet.tools) {
+        currentSet.tools.forEach((tool) => this.addTool(tool));
+      }
+    } else {
+      // Otherwise use the regular tools array
+      this.options.tools.forEach((tool) => this.addTool(tool));
+    }
   }
 
   _registerGroups() {
-    this.options.groups.forEach((group) => this.addGroup(group));
+    // If toolSets are defined, use the current tool set's groups
+    if (this.options.toolSets && this.options.toolSets.length > 0) {
+      const currentSet = this.options.toolSets[this.state.currentToolSet];
+      if (currentSet && currentSet.groups) {
+        currentSet.groups.forEach((group) => this.addGroup(group));
+      }
+    } else {
+      // Otherwise use the regular groups array
+      this.options.groups.forEach((group) => this.addGroup(group));
+    }
   }
 
   _attachEventListeners() {
@@ -826,6 +852,205 @@ export default class Toolbar {
     this.eventEmitter.emit("labels:change", { showLabels: show });
   }
 
+  /**
+   * Switch to a specific tool set by index
+   * @param {number} setIndex - Index of the tool set to switch to
+   */
+  switchToolSet(setIndex) {
+    if (!this.options.toolSets || this.options.toolSets.length === 0) {
+      console.warn("No tool sets defined");
+      return;
+    }
+
+    if (setIndex < 0 || setIndex >= this.options.toolSets.length) {
+      console.warn(`Invalid tool set index: ${setIndex}`);
+      return;
+    }
+
+    const previousSet = this.state.currentToolSet;
+    this.state.currentToolSet = setIndex;
+
+    // Clear existing tools and groups
+    this.tools.clear();
+    this.groups.clear();
+
+    // Re-register tools and groups from new set
+    this._registerTools();
+    this._registerGroups();
+
+    // Add automatic navigation button if configured
+    this._addNavigationButton();
+
+    // Re-render toolbar
+    this._render();
+
+    // Update set indicator if it exists
+    this._updateSetIndicator();
+
+    // Emit event
+    const currentSet = this.options.toolSets[setIndex];
+    this.eventEmitter.emit("toolset:change", {
+      currentSet: setIndex,
+      previousSet: previousSet,
+      setName: currentSet.name || `Set ${setIndex + 1}`,
+    });
+
+    if (this.options.onToolSetChange) {
+      this.options.onToolSetChange(setIndex, currentSet);
+    }
+  }
+
+  /**
+   * Add automatic navigation button based on current set's configuration
+   *
+   * Configuration options:
+   * {
+   *   label: string,           // Button label (default: "More")
+   *   icon: string,            // Icon path (default: "navigation.angle_right")
+   *   tooltip: string,         // Tooltip text (default: "Next tools")
+   *   targetSet: number|"next"|"previous",  // Target set (default: "next")
+   *   showSeparator: boolean,  // Show separator before button (default: true)
+   *   customClass: string      // Custom CSS class
+   * }
+   */
+  _addNavigationButton() {
+    if (!this.options.toolSets || this.options.toolSets.length <= 1) return;
+
+    const currentSet = this.options.toolSets[this.state.currentToolSet];
+    if (!currentSet || !currentSet.navigationButton) return;
+
+    const navConfig = currentSet.navigationButton;
+
+    // Determine target set index
+    let targetSetIndex;
+    if (typeof navConfig.targetSet === "number") {
+      targetSetIndex = navConfig.targetSet;
+    } else if (navConfig.targetSet === "next") {
+      targetSetIndex =
+        (this.state.currentToolSet + 1) % this.options.toolSets.length;
+    } else if (navConfig.targetSet === "previous") {
+      targetSetIndex =
+        (this.state.currentToolSet - 1 + this.options.toolSets.length) %
+        this.options.toolSets.length;
+    } else {
+      // Default to next
+      targetSetIndex =
+        (this.state.currentToolSet + 1) % this.options.toolSets.length;
+    }
+
+    // Add separator before navigation button (unless explicitly disabled)
+    if (navConfig.showSeparator !== false) {
+      this.addTool({
+        id: `__nav-separator-${this.state.currentToolSet}`,
+        type: "separator",
+      });
+    }
+
+    // Add the navigation button
+    const actualNavButton = {
+      id: navConfig.id || `__nav-button-${this.state.currentToolSet}`,
+      label: navConfig.label || "More",
+      icon: navConfig.icon || "navigation.angle_right",
+      tooltip: navConfig.tooltip || "Next tools",
+      action: () => {
+        this.switchToolSet(targetSetIndex);
+      },
+      customClass: navConfig.customClass || "",
+    };
+
+    this.addTool(actualNavButton);
+  }
+
+  /**
+   * Switch to the next tool set
+   */
+  nextToolSet() {
+    if (!this.options.toolSets || this.options.toolSets.length === 0) return;
+
+    const nextIndex =
+      (this.state.currentToolSet + 1) % this.options.toolSets.length;
+    this.switchToolSet(nextIndex);
+  }
+
+  /**
+   * Switch to the previous tool set
+   */
+  previousToolSet() {
+    if (!this.options.toolSets || this.options.toolSets.length === 0) return;
+
+    const prevIndex =
+      (this.state.currentToolSet - 1 + this.options.toolSets.length) %
+      this.options.toolSets.length;
+    this.switchToolSet(prevIndex);
+  }
+
+  /**
+   * Get the current tool set index
+   * @returns {number} Current tool set index
+   */
+  getCurrentToolSet() {
+    return this.state.currentToolSet;
+  }
+
+  /**
+   * Get the total number of tool sets
+   * @returns {number} Total number of tool sets
+   */
+  getToolSetCount() {
+    return this.options.toolSets ? this.options.toolSets.length : 0;
+  }
+
+  /**
+   * Update the set indicator dots
+   */
+  _updateSetIndicator() {
+    if (!this.setIndicator || !this.options.showSetIndicator) return;
+
+    const dots = this.setIndicator.querySelectorAll(".toolbar__set-dot");
+    dots.forEach((dot, index) => {
+      if (index === this.state.currentToolSet) {
+        dot.classList.add("toolbar__set-dot--active");
+      } else {
+        dot.classList.remove("toolbar__set-dot--active");
+      }
+    });
+  }
+
+  /**
+   * Create set indicator (pagination dots)
+   */
+  _createSetIndicator() {
+    if (
+      !this.options.toolSets ||
+      this.options.toolSets.length <= 1 ||
+      !this.options.showSetIndicator
+    ) {
+      return null;
+    }
+
+    const indicator = document.createElement("div");
+    indicator.className = "toolbar__set-indicator";
+
+    this.options.toolSets.forEach((set, index) => {
+      const dot = document.createElement("button");
+      dot.className = "toolbar__set-dot";
+      dot.setAttribute("aria-label", set.name || `Tool set ${index + 1}`);
+      dot.setAttribute("data-set-index", index);
+
+      if (index === this.state.currentToolSet) {
+        dot.classList.add("toolbar__set-dot--active");
+      }
+
+      dot.addEventListener("click", () => {
+        this.switchToolSet(index);
+      });
+
+      indicator.appendChild(dot);
+    });
+
+    return indicator;
+  }
+
   _render() {
     // Cleanup old tooltips before re-rendering
     this.toolsContainer
@@ -857,6 +1082,24 @@ export default class Toolbar {
     ungroupedTools.forEach((tool) => {
       this.toolsContainer.appendChild(this._createToolElement(tool));
     });
+
+    // Add set indicator if tool sets are enabled
+    if (
+      this.options.toolSets &&
+      this.options.toolSets.length > 1 &&
+      this.options.showSetIndicator
+    ) {
+      // Remove existing indicator if present
+      if (this.setIndicator && this.setIndicator.parentNode) {
+        this.setIndicator.parentNode.removeChild(this.setIndicator);
+      }
+
+      // Create new indicator
+      this.setIndicator = this._createSetIndicator();
+      if (this.setIndicator) {
+        this.toolsContainer.appendChild(this.setIndicator);
+      }
+    }
   }
 
   _createGroupElement(group, tools) {
