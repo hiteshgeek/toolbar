@@ -110,7 +110,7 @@ export default class Toolbar {
         const detectedTheme = e.matches ? "dark" : "light";
         this.eventEmitter.emit("theme:system-change", {
           theme: detectedTheme,
-          systemPreference: true
+          systemPreference: true,
         });
         if (this.options.onThemeChange) {
           this.options.onThemeChange(detectedTheme, true);
@@ -490,7 +490,9 @@ export default class Toolbar {
   setTheme(theme) {
     const validThemes = ["light", "dark", "system"];
     if (!validThemes.includes(theme)) {
-      console.warn(`Invalid theme: ${theme}. Valid themes are: ${validThemes.join(", ")}`);
+      console.warn(
+        `Invalid theme: ${theme}. Valid themes are: ${validThemes.join(", ")}`
+      );
       return;
     }
 
@@ -511,13 +513,15 @@ export default class Toolbar {
     // Get current effective theme for system mode
     let effectiveTheme = theme;
     if (theme === "system" && window.matchMedia) {
-      effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
     }
 
     this.eventEmitter.emit("theme:change", {
       theme: theme,
       previousTheme: previousTheme,
-      effectiveTheme: effectiveTheme
+      effectiveTheme: effectiveTheme,
     });
 
     if (this.options.onThemeChange) {
@@ -539,7 +543,9 @@ export default class Toolbar {
    */
   getEffectiveTheme() {
     if (this.options.theme === "system" && window.matchMedia) {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
     }
     return this.options.theme;
   }
@@ -553,12 +559,20 @@ export default class Toolbar {
 
     // Preserve all currently active tools before re-rendering
     const activeTools = [];
-    this.toolsContainer.querySelectorAll(".toolbar__tool--active").forEach((btn) => {
-      const toolId = btn.getAttribute("data-tool-id");
-      if (toolId) {
-        activeTools.push(toolId);
-      }
-    });
+    this.toolsContainer
+      .querySelectorAll(".toolbar__tool--active")
+      .forEach((btn) => {
+        const toolId = btn.getAttribute("data-tool-id");
+        if (toolId) {
+          activeTools.push(toolId);
+        }
+      });
+
+    if (show) {
+      this.toolsContainer.classList.add("with_label");
+    } else {
+      this.toolsContainer.classList.remove("with_label");
+    }
 
     // Store the current active tool ID
     const currentActiveTool = this.state.activeTool;
@@ -568,7 +582,9 @@ export default class Toolbar {
     // Restore all active tool states after re-rendering (except toggle-labels)
     activeTools.forEach((toolId) => {
       if (toolId !== "toggle-labels") {
-        const button = this.toolsContainer.querySelector(`[data-tool-id="${toolId}"]`);
+        const button = this.toolsContainer.querySelector(
+          `[data-tool-id="${toolId}"]`
+        );
         if (button) {
           button.classList.add("toolbar__tool--active");
           button.setAttribute("aria-pressed", "true");
@@ -577,7 +593,9 @@ export default class Toolbar {
     });
 
     // Set the toggle-labels button active state based on the new showLabels value
-    const toggleButton = this.toolsContainer.querySelector('[data-tool-id="toggle-labels"]');
+    const toggleButton = this.toolsContainer.querySelector(
+      '[data-tool-id="toggle-labels"]'
+    );
     if (toggleButton) {
       if (show) {
         toggleButton.classList.add("toolbar__tool--active");

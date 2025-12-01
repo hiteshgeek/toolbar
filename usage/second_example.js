@@ -26,7 +26,7 @@ if (typeof window !== "undefined") {
     position: "bottom-center",
     theme: "system",
     showLabels: false,
-    draggable: true,
+    draggable: false,
     tools: [
       {
         id: "undo",

@@ -11,13 +11,22 @@
 // ============================================================================
 // TOOL BUTTON
 // ============================================================================
+
+.toolbar__tools.with_label .toolbar__tool {
+  min-width: map.get($toolbar-sizes, tool, default);
+}
+
+.toolbar__tools:not(.with_label) .toolbar__tool {
+  min-width: auto;
+  width: map.get($toolbar-sizes, tool, default);
+}
+
 .toolbar__tool {
   @include reset-button;
   @include flex-center;
   @include hover-background;
 
   position: relative;
-  min-width: map.get($toolbar-sizes, tool, default);
   height: map.get($toolbar-sizes, tool, default);
   padding: map.get($toolbar-spacing, tool-padding);
   gap: 8px;
@@ -88,7 +97,11 @@
   }
 
   &--action {
-    background: color-mix(in srgb, var(--toolbar-primary-color) 70%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--toolbar-primary-color) 70%,
+      transparent
+    );
     color: #ffffff;
     padding: 8px 16px;
     border-radius: 20px;
