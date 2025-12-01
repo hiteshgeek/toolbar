@@ -40,6 +40,9 @@ export default class Toolbar {
       "center-right",
     ];
 
+    // Define valid sizes
+    this.validSizes = ["small", "medium", "large"];
+
     // Validate and set position (default to bottom-center if invalid)
     let position = options.position || "bottom-center";
     if (!this.validPositions.includes(position)) {
@@ -49,11 +52,21 @@ export default class Toolbar {
       position = "bottom-center";
     }
 
+    // Validate and set size (default to medium if invalid)
+    let size = options.size || "medium";
+    if (!this.validSizes.includes(size)) {
+      console.warn(
+        `Invalid size: ${size}. Defaulting to medium. Valid sizes are: ${this.validSizes.join(", ")}`
+      );
+      size = "medium";
+    }
+
     this.options = {
       container: options.container || document.body,
       position: position,
       orientation: options.orientation || "horizontal",
       theme: options.theme || "system", // Default to system preference
+      size: size, // Toolbar size: small, medium, large, xlarge
       draggable: options.draggable !== undefined ? options.draggable : false,
       snapToPosition:
         options.snapToPosition !== undefined ? options.snapToPosition : false,
@@ -75,6 +88,7 @@ export default class Toolbar {
       onThemeChange: options.onThemeChange || null,
       onPositionChange: options.onPositionChange || null,
       onToolSetChange: options.onToolSetChange || null,
+      onSizeChange: options.onSizeChange || null,
     };
 
     // Validate allowedSnapPositions
@@ -231,6 +245,7 @@ export default class Toolbar {
     classes.push(`toolbar--${this.options.position}`);
     classes.push(`toolbar--${this.options.orientation}`);
     classes.push(`toolbar--${this.options.theme}`);
+    classes.push(`toolbar--size-${this.options.size}`);
     classes.push(`toolbar--icon-${this.options.iconSize}`);
 
     if (this.state.collapsed) classes.push("toolbar--collapsed");
@@ -788,6 +803,63 @@ export default class Toolbar {
         : "light";
     }
     return this.options.theme;
+  }
+
+  /**
+   * Set the toolbar size dynamically
+   * @param {string} size - 'small', 'medium', 'large', or 'xlarge'
+   */
+  setSize(size) {
+    if (!this.validSizes.includes(size)) {
+      console.warn(
+        `Invalid size: ${size}. Valid sizes are: ${this.validSizes.join(", ")}`
+      );
+      return;
+    }
+
+    const previousSize = this.options.size;
+    this.options.size = size;
+
+    // Remove old size class
+    this.element.classList.remove(`toolbar--size-${previousSize}`);
+    // Add new size class
+    this.element.classList.add(`toolbar--size-${size}`);
+
+    this.eventEmitter.emit("size:change", {
+      size: size,
+      previousSize: previousSize,
+    });
+
+    if (this.options.onSizeChange) {
+      this.options.onSizeChange(size);
+    }
+  }
+
+  /**
+   * Get the current size setting
+   * @returns {string} Current size ('small', 'medium', 'large', or 'xlarge')
+   */
+  getSize() {
+    return this.options.size;
+  }
+
+  /**
+   * Cycle to the next size in the sequence
+   */
+  nextSize() {
+    const currentIndex = this.validSizes.indexOf(this.options.size);
+    const nextIndex = (currentIndex + 1) % this.validSizes.length;
+    this.setSize(this.validSizes[nextIndex]);
+  }
+
+  /**
+   * Cycle to the previous size in the sequence
+   */
+  previousSize() {
+    const currentIndex = this.validSizes.indexOf(this.options.size);
+    const prevIndex =
+      (currentIndex - 1 + this.validSizes.length) % this.validSizes.length;
+    this.setSize(this.validSizes[prevIndex]);
   }
 
   /**

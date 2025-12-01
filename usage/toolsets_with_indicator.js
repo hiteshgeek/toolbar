@@ -17,22 +17,12 @@ if (typeof window !== "undefined") {
     },
   };
 
-  const SIZE_CONFIG = {
-    order: ["small", "medium", "large"],
-    labels: {
-      small: "Small",
-      medium: "Medium",
-      large: "Large",
-    },
-  };
-
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
 
   const basicToolbar = new Toolbar({
     container: "#app",
-    size: "medium", //small, medium, large
     position: "bottom-center",
     theme: "system",
     showLabels: false,
@@ -117,17 +107,6 @@ if (typeof window !== "undefined") {
           },
           { type: "separator" },
           {
-            id: "size-toggle",
-            label: "Size",
-            icon: "edit.plus",
-            tooltip: "Size: Medium",
-            customClass: "toolbar__tool--active",
-            action: () => {
-              basicToolbar.nextSize();
-            },
-          },
-          { type: "separator" },
-          {
             id: "toggle-labels",
             label: "Labels",
             icon: "utils.menu",
@@ -197,10 +176,6 @@ if (typeof window !== "undefined") {
       // Update visual state when theme changes
       updateThemeVisuals(theme);
     },
-    onSizeChange: (size) => {
-      // Update visual state when size changes
-      updateSizeVisuals(size);
-    },
   });
 
   window.basicToolbar = basicToolbar;
@@ -217,23 +192,8 @@ if (typeof window !== "undefined") {
     const themeTool = basicToolbar.tools.get("theme-toggle");
     if (themeTool) {
       basicToolbar.updateTool("theme-toggle", {
-        label: stateLabel,
         icon: newIcon,
         tooltip: `Theme: ${stateLabel}`,
-        // Maintain the active class during updates
-        customClass: "toolbar__tool--active",
-      });
-    }
-  };
-
-  const updateSizeVisuals = (size) => {
-    const stateLabel = SIZE_CONFIG.labels[size];
-
-    // Only update if size toggle exists in current tool set
-    const sizeTool = basicToolbar.tools.get("size-toggle");
-    if (sizeTool) {
-      basicToolbar.updateTool("size-toggle", {
-        tooltip: `Size: ${stateLabel}`,
         // Maintain the active class during updates
         customClass: "toolbar__tool--active",
       });
@@ -246,7 +206,7 @@ if (typeof window !== "undefined") {
 
   // When other toggle buttons (like "Labels") are clicked, the Toolbar library
   // normally removes the active class from all other buttons.
-  // We listen for this event and immediately re-apply the active class to our theme and size buttons.
+  // We listen for this event and immediately re-apply the active class to our theme button.
   basicToolbar.on("tool:activate", () => {
     const themeBtn = basicToolbar.toolsContainer.querySelector(
       '[data-tool-id="theme-toggle"]'
@@ -255,31 +215,21 @@ if (typeof window !== "undefined") {
       themeBtn.classList.add("toolbar__tool--active");
       themeBtn.setAttribute("aria-pressed", "true");
     }
-
-    const sizeBtn = basicToolbar.toolsContainer.querySelector(
-      '[data-tool-id="size-toggle"]'
-    );
-    if (sizeBtn) {
-      sizeBtn.classList.add("toolbar__tool--active");
-      sizeBtn.setAttribute("aria-pressed", "true");
-    }
   });
 
   // Listen for tool set changes
   basicToolbar.on("toolset:change", (data) => {
     console.log("Tool set changed:", data);
-    // Re-initialize theme and size button visual state if switching to view tools
+    // Re-initialize theme button visual state if switching to view tools
     updateThemeVisuals(basicToolbar.getTheme());
-    updateSizeVisuals(basicToolbar.getSize());
   });
 
   // ============================================================================
   // STARTUP
   // ============================================================================
 
-  // Initialize button states
+  // Initialize button state
   updateThemeVisuals(basicToolbar.getTheme());
-  updateSizeVisuals(basicToolbar.getSize());
 
   // Initialize labels toggle state if needed
   if (basicToolbar.options.showLabels) {

@@ -176,31 +176,107 @@
   // ============================================================================
   // SIZE VARIANTS
   // ============================================================================
-  &--small {
-    padding: 8px 12px;
-    gap: 8px;
+  &--size-small {
+    padding: 6px 10px;
+    gap: 6px;
+
+    .toolbar__tools {
+      gap: 6px;
+
+      &:not(.with_label) .toolbar__tool {
+        width: 32px;
+        min-width: 32px;
+        padding: 0;
+        border-radius: 50%;
+      }
+
+      &.with_label .toolbar__tool {
+        padding: 6px 12px;
+      }
+    }
 
     .toolbar__tool {
-      height: map.get($toolbar-sizes, tool, small);
-      min-width: map.get($toolbar-sizes, tool, small);
+      height: 32px;
+      font-size: 0.813rem;
     }
 
     .toolbar__tool-icon {
-      @include icon-size(map.get($toolbar-sizes, icon, small));
+      @include icon-size(14px);
+    }
+
+    .toolbar__set-indicator {
+      gap: 10px;
+      padding: 0 10px;
+      margin-left: 8px;
+    }
+
+    .toolbar__set-dot {
+      width: 6px;
+      height: 6px;
     }
   }
 
-  &--large {
-    padding: 16px 24px;
-    gap: 16px;
+  &--size-medium {
+    // Default size - already defined in base styles
+    padding: map.get($toolbar-spacing, padding);
+    gap: map.get($toolbar-spacing, gap);
+
+    .toolbar__tools {
+      &:not(.with_label) .toolbar__tool {
+        width: map.get($toolbar-sizes, tool, default);
+        min-width: map.get($toolbar-sizes, tool, default);
+        padding: 0;
+        border-radius: 50%;
+      }
+    }
 
     .toolbar__tool {
-      height: map.get($toolbar-sizes, tool, large);
-      min-width: map.get($toolbar-sizes, tool, large);
+      height: map.get($toolbar-sizes, tool, default);
+      min-width: map.get($toolbar-sizes, tool, default);
     }
 
     .toolbar__tool-icon {
-      @include icon-size(map.get($toolbar-sizes, icon, large));
+      @include icon-size(map.get($toolbar-sizes, icon, default));
+    }
+  }
+
+  &--size-large {
+    padding: 16px 24px;
+    gap: 16px;
+
+    .toolbar__tools {
+      gap: 16px;
+
+      &:not(.with_label) .toolbar__tool {
+        width: 52px;
+        min-width: 52px;
+        padding: 0;
+        border-radius: 50%;
+      }
+
+      &.with_label .toolbar__tool {
+        padding: 12px 20px;
+      }
+    }
+
+    .toolbar__tool {
+      height: 52px;
+      font-size: 1.063rem;
+    }
+
+    .toolbar__tool-icon {
+      @include icon-size(22px);
+    }
+
+    .toolbar__set-indicator {
+      gap: 20px;
+      padding: 0 20px;
+      margin-left: 16px;
+    }
+
+    .toolbar__set-dot {
+      width: 10px;
+      height: 10px;
     }
   }
 
