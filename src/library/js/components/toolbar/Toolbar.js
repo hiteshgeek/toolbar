@@ -31,7 +31,7 @@ export default class Toolbar {
       container: options.container || document.body,
       position: options.position || "top",
       orientation: options.orientation || "horizontal",
-      theme: options.theme || "light",
+      theme: options.theme || "system", // Default to system preference
       draggable: options.draggable !== undefined ? options.draggable : false,
       collapsible:
         options.collapsible !== undefined ? options.collapsible : false,
@@ -43,6 +43,7 @@ export default class Toolbar {
       groups: options.groups || [],
       onToolClick: options.onToolClick || null,
       onStateChange: options.onStateChange || null,
+      onThemeChange: options.onThemeChange || null,
     };
 
     // Validate position logic
@@ -84,6 +85,7 @@ export default class Toolbar {
     this.eventEmitter = new ToolbarEventEmitter();
     this.element = null;
     this.toolsContainer = null;
+    this.systemThemeListener = null;
 
     this._init();
   }
@@ -93,7 +95,54 @@ export default class Toolbar {
     this._registerTools();
     this._registerGroups();
     this._attachEventListeners();
+    this._setupSystemThemeListener();
     this._render();
+  }
+
+  /**
+   * Setup listener for system theme changes when theme is set to 'system'
+   */
+  _setupSystemThemeListener() {
+    if (this.options.theme === "system" && window.matchMedia) {
+      const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+      this.systemThemeListener = (e) => {
+        const detectedTheme = e.matches ? "dark" : "light";
+        this.eventEmitter.emit("theme:system-change", {
+          theme: detectedTheme,
+          systemPreference: true
+        });
+        if (this.options.onThemeChange) {
+          this.options.onThemeChange(detectedTheme, true);
+        }
+      };
+
+      // Modern browsers
+      if (darkModeQuery.addEventListener) {
+        darkModeQuery.addEventListener("change", this.systemThemeListener);
+      }
+      // Fallback for older browsers
+      else if (darkModeQuery.addListener) {
+        darkModeQuery.addListener(this.systemThemeListener);
+      }
+    }
+  }
+
+  /**
+   * Remove system theme listener
+   */
+  _removeSystemThemeListener() {
+    if (this.systemThemeListener && window.matchMedia) {
+      const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+      if (darkModeQuery.removeEventListener) {
+        darkModeQuery.removeEventListener("change", this.systemThemeListener);
+      } else if (darkModeQuery.removeListener) {
+        darkModeQuery.removeListener(this.systemThemeListener);
+      }
+
+      this.systemThemeListener = null;
+    }
   }
 
   _createElements() {
@@ -434,6 +483,117 @@ export default class Toolbar {
     this.eventEmitter.emit("toolbar:hide");
   }
 
+  /**
+   * Set the toolbar theme dynamically
+   * @param {string} theme - 'light', 'dark', or 'system'
+   */
+  setTheme(theme) {
+    const validThemes = ["light", "dark", "system"];
+    if (!validThemes.includes(theme)) {
+      console.warn(`Invalid theme: ${theme}. Valid themes are: ${validThemes.join(", ")}`);
+      return;
+    }
+
+    const previousTheme = this.options.theme;
+    this.options.theme = theme;
+
+    // Remove old theme class
+    this.element.classList.remove(`toolbar--${previousTheme}`);
+    // Add new theme class
+    this.element.classList.add(`toolbar--${theme}`);
+
+    // Update system theme listener
+    this._removeSystemThemeListener();
+    if (theme === "system") {
+      this._setupSystemThemeListener();
+    }
+
+    // Get current effective theme for system mode
+    let effectiveTheme = theme;
+    if (theme === "system" && window.matchMedia) {
+      effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+
+    this.eventEmitter.emit("theme:change", {
+      theme: theme,
+      previousTheme: previousTheme,
+      effectiveTheme: effectiveTheme
+    });
+
+    if (this.options.onThemeChange) {
+      this.options.onThemeChange(theme, false);
+    }
+  }
+
+  /**
+   * Get the current theme setting
+   * @returns {string} Current theme ('light', 'dark', or 'system')
+   */
+  getTheme() {
+    return this.options.theme;
+  }
+
+  /**
+   * Get the effective theme (resolves 'system' to actual theme)
+   * @returns {string} Effective theme ('light' or 'dark')
+   */
+  getEffectiveTheme() {
+    if (this.options.theme === "system" && window.matchMedia) {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    return this.options.theme;
+  }
+
+  /**
+   * Set whether to show labels on toolbar buttons
+   * @param {boolean} show - True to show labels, false to hide them
+   */
+  setShowLabels(show) {
+    this.options.showLabels = show;
+
+    // Preserve all currently active tools before re-rendering
+    const activeTools = [];
+    this.toolsContainer.querySelectorAll(".toolbar__tool--active").forEach((btn) => {
+      const toolId = btn.getAttribute("data-tool-id");
+      if (toolId) {
+        activeTools.push(toolId);
+      }
+    });
+
+    // Store the current active tool ID
+    const currentActiveTool = this.state.activeTool;
+
+    this._render();
+
+    // Restore all active tool states after re-rendering (except toggle-labels)
+    activeTools.forEach((toolId) => {
+      if (toolId !== "toggle-labels") {
+        const button = this.toolsContainer.querySelector(`[data-tool-id="${toolId}"]`);
+        if (button) {
+          button.classList.add("toolbar__tool--active");
+          button.setAttribute("aria-pressed", "true");
+        }
+      }
+    });
+
+    // Set the toggle-labels button active state based on the new showLabels value
+    const toggleButton = this.toolsContainer.querySelector('[data-tool-id="toggle-labels"]');
+    if (toggleButton) {
+      if (show) {
+        toggleButton.classList.add("toolbar__tool--active");
+        toggleButton.setAttribute("aria-pressed", "true");
+      } else {
+        toggleButton.classList.remove("toolbar__tool--active");
+        toggleButton.setAttribute("aria-pressed", "false");
+      }
+    }
+
+    // Restore the state
+    this.state.activeTool = currentActiveTool;
+
+    this.eventEmitter.emit("labels:change", { showLabels: show });
+  }
+
   _render() {
     // Cleanup old tooltips before re-rendering
     this.toolsContainer
@@ -583,6 +743,9 @@ export default class Toolbar {
   }
 
   destroy() {
+    // Remove system theme listener
+    this._removeSystemThemeListener();
+
     if (this.element && this.element.parentNode) {
       // Cleanup tooltips inside
       if (this.collapseButton) Tooltip.remove(this.collapseButton);

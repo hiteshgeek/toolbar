@@ -35,7 +35,7 @@
   }
 
   // ============================================================================
-  // THEME VARIANTS
+  // THEME VARIANTS - Static Modes
   // ============================================================================
   &--light {
     @include theme-colors("light");
@@ -43,6 +43,19 @@
 
   &--dark {
     @include theme-colors("dark");
+  }
+
+  // ============================================================================
+  // SYSTEM THEME MODE - Respects OS Preference
+  // ============================================================================
+  &--system {
+    // Default to light theme
+    @include theme-colors("light");
+
+    // Switch to dark theme when OS prefers dark mode
+    @media (prefers-color-scheme: dark) {
+      @include theme-colors("dark");
+    }
   }
 
   // ============================================================================

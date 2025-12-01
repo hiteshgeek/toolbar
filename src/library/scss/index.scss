@@ -6,3 +6,11 @@
 // Components
 @use "components/tooltip/tooltip.scss";
 @use "components/toolbar/toolbar.scss";
+
+// ============================================================================
+// ROOT LEVEL CSS CUSTOM PROPERTIES
+// ============================================================================
+:root {
+  --toolbar-primary-color: #cc2e68;
+  --toolbar-danger-color: #ff4444;
+}

@@ -44,7 +44,8 @@
   }
 
   &:focus-visible {
-    @include focus-ring($toolbar-primary);
+    outline: 2px solid var(--toolbar-primary-color);
+    outline-offset: 2px;
     border-radius: 999px;
   }
 
@@ -61,19 +62,18 @@
   }
 
   &--active {
-    background: $toolbar-primary;
+    background: var(--toolbar-primary-color);
     color: #ffffff;
 
     .toolbar__tool-icon svg {
       fill: #ffffff;
     }
 
-    &:hover {
-      background: color.adjust($toolbar-primary, $lightness: 10%);
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--toolbar-primary-color) 85%, white);
     }
   }
 
-  &--toggle,
   &--radio {
     &.toolbar__tool--active {
       background: var(--toolbar-bg-active);
@@ -88,14 +88,14 @@
   }
 
   &--action {
-    background: color-mix(in srgb, #{$toolbar-primary} 70%, transparent);
+    background: color-mix(in srgb, var(--toolbar-primary-color) 70%, transparent);
     color: #ffffff;
     padding: 8px 16px;
     border-radius: 20px;
     font-weight: map.get($toolbar-typography, font-weight, medium);
 
     &:hover:not(:disabled) {
-      background: $toolbar-primary;
+      background: var(--toolbar-primary-color);
       transform: scale(1.05);
     }
   }
@@ -130,6 +130,10 @@
   .toolbar__tool--active & svg {
     fill: #ffffff;
   }
+
+  .toolbar__tool--active:hover:not(:disabled) & svg {
+    fill: #ffffff;
+  }
 }
 
 // ============================================================================
@@ -157,7 +161,7 @@
   font-size: 0.688rem;
   font-weight: map.get($toolbar-typography, font-weight, bold);
   color: #ffffff;
-  background: $toolbar-danger;
+  background: var(--toolbar-danger-color);
   border-radius: 8px;
   line-height: 1;
   pointer-events: none;
