@@ -1,0 +1,218 @@
+// ============================================================================
+// TOOLBAR - MAIN ENTRY POINT
+// Modern modular toolbar system with screenshot-toolbar aesthetic
+// ============================================================================
+// Core modules
+
+@use "sass:map";
+@use "../../variables" as *;
+@use "../../mixins" as *;
+
+// Component modules
+@use "base";
+@use "header";
+@use "tool";
+@use "group";
+@use "dropdown";
+
+// Import Google Font
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+// ============================================================================
+// GLOBAL RESET & BASE STYLES
+// ============================================================================
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+// ============================================================================
+// UTILITY CLASSES
+// ============================================================================
+
+// Hide element
+.toolbar-hidden {
+  display: none !important;
+}
+
+// Visually hidden (for accessibility)
+.toolbar-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Prevent text selection
+.toolbar-no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+// ============================================================================
+// ANIMATION KEYFRAMES
+// ============================================================================
+
+@keyframes toolbar-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes toolbar-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toolbar-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toolbar-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+}
+
+// ============================================================================
+// ANIMATION UTILITY CLASSES
+// ============================================================================
+
+.toolbar--animated {
+  animation: toolbar-fade-in 0.3s ease;
+}
+
+.toolbar--slide-up {
+  animation: toolbar-slide-up 0.3s ease;
+}
+
+.toolbar--slide-down {
+  animation: toolbar-slide-down 0.3s ease;
+}
+
+.toolbar__tool--pulsing {
+  animation: toolbar-pulse 1.5s ease-in-out infinite;
+}
+
+// ============================================================================
+// THEME UTILITY CLASSES
+// ============================================================================
+
+.toolbar--theme-auto {
+  @media (prefers-color-scheme: dark) {
+    @include theme-colors("dark");
+  }
+
+  @media (prefers-color-scheme: light) {
+    @include theme-colors("light");
+  }
+}
+
+// ============================================================================
+// PRINT STYLES
+// ============================================================================
+
+@media print {
+  .toolbar,
+  .toolbar__dropdown-menu {
+    display: none !important;
+  }
+}
+
+// ============================================================================
+// REDUCED MOTION
+// ============================================================================
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar,
+  .toolbar__tool,
+  .toolbar__dropdown-menu,
+  .toolbar__collapse-btn,
+  .toolbar__drag-handle {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+// ============================================================================
+// HIGH CONTRAST MODE
+// ============================================================================
+
+@media (prefers-contrast: high) {
+  .toolbar {
+    border-width: 2px;
+    border-color: currentColor;
+  }
+
+  .toolbar__tool {
+    border: 1px solid currentColor;
+
+    &:focus-visible {
+      outline-width: 3px;
+    }
+  }
+}
+
+// ============================================================================
+// RTL SUPPORT
+// ============================================================================
+
+[dir="rtl"] {
+  .toolbar__dropdown-menu {
+    left: auto;
+    right: 0;
+  }
+
+  .toolbar__dropdown-item-shortcut {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .toolbar__tool-dropdown-icon {
+    margin-left: 0;
+    margin-right: 4px;
+  }
+}
+
+// ============================================================================
+// EXPORT VARIABLES FOR JS ACCESS (CSS custom properties)
+// ============================================================================
+
+:root {
+  // Export key values as CSS variables for JavaScript access
+  --toolbar-animation-duration: #{map.get($toolbar-animation, duration, fast)};
+  --toolbar-z-index: #{map.get($toolbar-z-index, base)};
+  --toolbar-border-radius: #{map.get($toolbar-border, radius)};
+  --toolbar-primary-color: #{$toolbar-primary};
+  --toolbar-danger-color: #{$toolbar-danger};
+}

@@ -1,0 +1,280 @@
+// ============================================================================
+// TOOLBAR MIXINS - Modern Dart Sass Features
+// ============================================================================
+@use "sass:map";
+@use "sass:list";
+@use "sass:color";
+@use "variables" as *;
+
+// ============================================================================
+// FLEXBOX UTILITIES
+// ============================================================================
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+// ============================================================================
+// BUTTON RESET
+// ============================================================================
+@mixin reset-button {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  outline: none;
+  font: inherit;
+  color: inherit;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+// ============================================================================
+// GLASSMORPHISM EFFECT
+// ============================================================================
+@mixin glassmorphic($bg-color, $blur: $toolbar-backdrop-blur) {
+  background: $bg-color;
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+}
+
+// ============================================================================
+// INTERACTIVE STATES
+// ============================================================================
+@mixin hover-scale($scale: 1.1) {
+  transition: all map.get($toolbar-animation, duration, fast)
+    map.get($toolbar-animation, easing, default);
+
+  &:hover:not(:disabled) {
+    transform: scale($scale);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95) !important;
+  }
+}
+
+@mixin hover-background {
+  transition: background map.get($toolbar-animation, duration, fast) ease;
+
+  &:hover:not(:disabled) {
+    background: var(--toolbar-bg-hover);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--toolbar-bg-active);
+  }
+}
+
+// ============================================================================
+// FOCUS RING
+// ============================================================================
+@mixin focus-ring($color: $toolbar-primary, $offset: 2px) {
+  outline: 2px solid $color;
+  outline-offset: $offset;
+  border-radius: inherit;
+}
+
+// ============================================================================
+// ICON SIZING
+// ============================================================================
+@mixin icon-size($size) {
+  width: $size;
+  height: $size;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+  }
+}
+
+// ============================================================================
+// TEXT UTILITIES
+// ============================================================================
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin line-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ============================================================================
+// ELEVATION/SHADOWS
+// ============================================================================
+@mixin elevation($level: "sm") {
+  box-shadow: map.get($toolbar-shadows, $level);
+}
+
+// ============================================================================
+// SCROLLBAR STYLING
+// ============================================================================
+@mixin custom-scrollbar($thumb-color: rgba(255, 255, 255, 0.3)) {
+  scrollbar-width: thin;
+  scrollbar-color: $thumb-color transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: 3px;
+
+    &:hover {
+      background: color.adjust($thumb-color, $lightness: 10%);
+    }
+  }
+}
+
+// ============================================================================
+// ANIMATIONS
+// ============================================================================
+@mixin slide-up($distance: 20px) {
+  animation: slide-up map.get($toolbar-animation, duration, medium)
+    map.get($toolbar-animation, easing, default);
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY($distance);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@mixin fade-in {
+  animation: fade-in map.get($toolbar-animation, duration, fast) ease;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+// ============================================================================
+// RESPONSIVE UTILITIES
+// ============================================================================
+@mixin respond-to($breakpoint) {
+  $bp-value: map.get($toolbar-breakpoints, $breakpoint);
+
+  @if $bp-value {
+    @media (max-width: $bp-value) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint '#{$breakpoint}' not found in $toolbar-breakpoints";
+  }
+}
+
+// ============================================================================
+// THEME UTILITIES
+// ============================================================================
+@mixin theme-colors($theme: "dark") {
+  $colors: map.get($toolbar-colors, $theme);
+
+  --toolbar-bg: #{map.get($colors, bg)};
+  --toolbar-bg-solid: #{map.get($colors, bg-solid)};
+  --toolbar-bg-hover: #{map.get($colors, bg-hover)};
+  --toolbar-bg-active: #{map.get($colors, bg-active)};
+  --toolbar-border: #{map.get($colors, border)};
+  --toolbar-text: #{map.get($colors, text)};
+  --toolbar-text-secondary: #{map.get($colors, text-secondary)};
+  --toolbar-icon: #{map.get($colors, icon)};
+  --toolbar-shadow: #{map.get($colors, shadow)};
+  --toolbar-svg-fill: #{map.get($colors, svg-fill)};
+}
+
+// ============================================================================
+// TOOLTIP
+// ============================================================================
+@mixin tooltip($position: "top") {
+  position: relative;
+
+  &::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    background: rgba(28, 28, 28, 0.95);
+    backdrop-filter: blur(10px);
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: map.get($toolbar-typography, font-size, small);
+    font-weight: map.get($toolbar-typography, font-weight, medium);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity map.get($toolbar-animation, duration, fast) ease,
+      transform map.get($toolbar-animation, duration, fast) ease,
+      visibility map.get($toolbar-animation, duration, fast) ease;
+    z-index: map.get($toolbar-z-index, tooltip);
+    box-shadow: map.get($toolbar-shadows);
+
+    @if $position == "top" {
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-4px);
+    } @else if $position == "bottom" {
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+    } @else if $position == "left" {
+      right: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-4px);
+    } @else if $position == "right" {
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%) translateX(4px);
+    }
+  }
+
+  &:hover::before {
+    opacity: 1;
+    visibility: visible;
+
+    @if $position == "top" {
+      transform: translateX(-50%) translateY(0);
+    } @else if $position == "bottom" {
+      transform: translateX(-50%) translateY(0);
+    } @else if $position == "left" {
+      transform: translateY(-50%) translateX(0);
+    } @else if $position == "right" {
+      transform: translateY(-50%) translateX(0);
+    }
+  }
+}

@@ -1,0 +1,246 @@
+// ============================================================================
+// TOOLBAR TOOL (Button) STYLES
+// Screenshot-toolbar inspired interactive buttons
+// ============================================================================
+@use "sass:map";
+@use "sass:color";
+@use "sass:list";
+@use "../../variables" as *;
+@use "../../mixins" as *;
+
+// ============================================================================
+// TOOL BUTTON
+// ============================================================================
+.toolbar__tool {
+  @include reset-button;
+  @include flex-center;
+  @include hover-background;
+
+  position: relative;
+  min-width: map.get($toolbar-sizes, tool, default);
+  height: map.get($toolbar-sizes, tool, default);
+  padding: map.get($toolbar-spacing, tool-padding);
+  gap: 8px;
+  color: var(--toolbar-text);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  font-size: map.get($toolbar-typography, font-size, default);
+  font-weight: map.get($toolbar-typography, font-weight, medium);
+  white-space: nowrap;
+  user-select: none;
+  transition: all map.get($toolbar-animation, duration, fast) ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95) !important;
+  }
+
+  &:focus-visible {
+    @include focus-ring($toolbar-primary);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &--with-label {
+    border-radius: map.get($toolbar-border, tool-radius);
+    padding: 0 16px;
+    min-width: auto;
+  }
+
+  &--active {
+    background: $toolbar-primary;
+    color: #ffffff;
+
+    .toolbar__tool-icon svg {
+      fill: #ffffff;
+    }
+
+    &:hover {
+      background: color.adjust($toolbar-primary, $lightness: 10%);
+    }
+  }
+
+  &--toggle,
+  &--radio {
+    &.toolbar__tool--active {
+      background: var(--toolbar-bg-active);
+    }
+  }
+
+  &--dropdown {
+    padding-right: calc(
+      #{list.nth(map.get($toolbar-spacing, tool-padding), 2)} + 8px
+    );
+    border-radius: map.get($toolbar-border, tool-radius);
+  }
+
+  &--action {
+    background: color-mix(in srgb, #{$toolbar-primary} 70%, transparent);
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: map.get($toolbar-typography, font-weight, medium);
+
+    &:hover:not(:disabled) {
+      background: $toolbar-primary;
+      transform: scale(1.05);
+    }
+  }
+
+  &--danger {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--toolbar-text);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+}
+
+// ============================================================================
+// TOOL ICON
+// ============================================================================
+.toolbar__tool-icon {
+  @include flex-center;
+  @include icon-size(map.get($toolbar-sizes, icon, medium));
+  flex-shrink: 0;
+
+  svg {
+    fill: var(--toolbar-icon);
+    transition: fill map.get($toolbar-animation, duration, fast) ease;
+  }
+
+  .toolbar__tool:hover:not(:disabled) & svg {
+    fill: var(--toolbar-text);
+  }
+
+  .toolbar__tool--active & svg {
+    fill: #ffffff;
+  }
+}
+
+// ============================================================================
+// TOOL LABEL
+// ============================================================================
+.toolbar__tool-label {
+  font-weight: map.get($toolbar-typography, font-weight, medium);
+  font-size: map.get($toolbar-typography, font-size, default);
+  @include truncate;
+  max-width: 120px;
+  line-height: 1.2;
+}
+
+// ============================================================================
+// TOOL BADGE
+// ============================================================================
+.toolbar__tool-badge {
+  @include flex-center;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 0.688rem;
+  font-weight: map.get($toolbar-typography, font-weight, bold);
+  color: #ffffff;
+  background: $toolbar-danger;
+  border-radius: 8px;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+// ============================================================================
+// DROPDOWN INDICATOR
+// ============================================================================
+.toolbar__tool-dropdown-icon {
+  @include icon-size(12px);
+  margin-left: 4px;
+
+  svg {
+    fill: var(--toolbar-text-secondary);
+    transition: transform map.get($toolbar-animation, duration, fast) ease;
+  }
+
+  .toolbar__tool:hover & svg {
+    fill: var(--toolbar-text);
+  }
+
+  .toolbar__tool[aria-expanded="true"] & svg {
+    transform: rotate(180deg);
+  }
+}
+
+// ============================================================================
+// TOOL SEPARATOR
+// ============================================================================
+.toolbar__separator {
+  width: map.get($toolbar-sizes, separator, width);
+  height: map.get($toolbar-sizes, separator, height);
+  background: var(--toolbar-border);
+  margin: map.get($toolbar-spacing, separator-margin);
+  opacity: 0.5;
+  flex-shrink: 0;
+
+  .toolbar--vertical & {
+    width: map.get($toolbar-sizes, separator, height);
+    height: map.get($toolbar-sizes, separator, width);
+  }
+}
+
+// ============================================================================
+// LOADING STATE
+// ============================================================================
+.toolbar__tool--loading {
+  pointer-events: none;
+
+  .toolbar__tool-icon {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ============================================================================
+// RESPONSIVE ADJUSTMENTS
+// ============================================================================
+@include respond-to("tablet") {
+  .toolbar__tool {
+    min-width: map.get($toolbar-sizes, tool, small);
+    height: map.get($toolbar-sizes, tool, small);
+
+    &-icon {
+      @include icon-size(map.get($toolbar-sizes, icon, small));
+    }
+  }
+}
+
+@include respond-to("mobile") {
+  .toolbar__tool {
+    min-width: 28px;
+    height: 28px;
+
+    &-label {
+      display: none;
+    }
+
+    &-icon {
+      @include icon-size(14px);
+    }
+  }
+}

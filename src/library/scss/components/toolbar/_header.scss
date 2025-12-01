@@ -1,0 +1,208 @@
+// ============================================================================
+// TOOLBAR HEADER STYLES
+// Draggable header and collapse functionality
+// ============================================================================
+@use "sass:map";
+@use "../../variables" as *;
+@use "../../mixins" as *;
+
+// ============================================================================
+// HEADER CONTAINER
+// ============================================================================
+.toolbar__header {
+  @include flex-between;
+  gap: map.get($toolbar-spacing, gap);
+  padding: 8px;
+  user-select: none;
+
+  // Vertical toolbar orientation
+  .toolbar--vertical & {
+    flex-direction: column;
+    border-bottom: none;
+    border-right: 1px solid var(--toolbar-border);
+    margin-bottom: 0;
+    margin-right: map.get($toolbar-spacing, gap);
+  }
+}
+
+// ============================================================================
+// COLLAPSE BUTTON
+// ============================================================================
+.toolbar__collapse-btn {
+  @include reset-button;
+  @include flex-center;
+  @include hover-background;
+
+  width: 28px;
+  height: 28px;
+  color: var(--toolbar-icon);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transition: all map.get($toolbar-animation, duration, fast) ease;
+
+  svg {
+    @include icon-size(16px);
+    transition: transform map.get($toolbar-animation, duration, fast) ease;
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95) !important;
+  }
+
+  &:focus-visible {
+    @include focus-ring($toolbar-primary);
+  }
+
+  // Icon rotation when collapsed
+  .toolbar--collapsed & svg {
+    transform: rotate(180deg);
+  }
+
+  // Different icon direction for vertical toolbar
+  .toolbar--vertical & svg {
+    transform: rotate(-90deg);
+  }
+
+  .toolbar--vertical.toolbar--collapsed & svg {
+    transform: rotate(90deg);
+  }
+}
+
+// ============================================================================
+// DRAG HANDLE
+// ============================================================================
+.toolbar__drag-handle {
+  @include flex-center;
+  padding: 6px;
+  color: var(--toolbar-text-secondary);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: map.get($toolbar-border, tool-radius);
+  cursor: grab;
+  user-select: none;
+  transition: all map.get($toolbar-animation, duration, fast) ease;
+
+  svg {
+    @include icon-size(16px);
+    fill: var(--toolbar-svg-fill);
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: var(--toolbar-text);
+  }
+
+  &:active {
+    cursor: grabbing;
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  // Dragging state
+  .toolbar--dragging & {
+    cursor: grabbing;
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+// ============================================================================
+// HEADER TITLE
+// ============================================================================
+.toolbar__header-title {
+  font-size: map.get($toolbar-typography, font-size, default);
+  font-weight: map.get($toolbar-typography, font-weight, medium);
+  color: var(--toolbar-text);
+  @include truncate;
+  flex: 1;
+  text-align: center;
+}
+
+// ============================================================================
+// HEADER ACTIONS (additional buttons)
+// ============================================================================
+.toolbar__header-actions {
+  @include flex-center;
+  gap: 6px;
+}
+
+.toolbar__header-action {
+  @include reset-button;
+  @include flex-center;
+  @include hover-background;
+
+  width: 24px;
+  height: 24px;
+  color: var(--toolbar-icon);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transition: all map.get($toolbar-animation, duration, fast) ease;
+
+  svg {
+    @include icon-size(14px);
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.9);
+  }
+
+  &:focus-visible {
+    @include focus-ring($toolbar-primary);
+  }
+}
+
+// ============================================================================
+// MINIMIZE/MAXIMIZE BUTTON
+// ============================================================================
+.toolbar__minimize-btn,
+.toolbar__maximize-btn {
+  @extend .toolbar__collapse-btn;
+}
+
+// ============================================================================
+// RESPONSIVE ADJUSTMENTS
+// ============================================================================
+@include respond-to("tablet") {
+  .toolbar__header {
+    padding: 6px;
+
+    &-title {
+      font-size: map.get($toolbar-typography, font-size, small);
+    }
+  }
+
+  .toolbar__collapse-btn,
+  .toolbar__drag-handle {
+    width: 24px;
+    height: 24px;
+
+    svg {
+      @include icon-size(14px);
+    }
+  }
+}
+
+@include respond-to("mobile") {
+  .toolbar__header {
+    padding: 4px;
+
+    &-title {
+      display: none; // Hide title on mobile for space
+    }
+  }
+
+  .toolbar__collapse-btn,
+  .toolbar__drag-handle {
+    width: 20px;
+    height: 20px;
+
+    svg {
+      @include icon-size(12px);
+    }
+  }
+}

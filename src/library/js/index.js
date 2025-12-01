@@ -1,0 +1,8 @@
+import { Toolbar } from "./components/Toolbar.js";
+
+export { Toolbar };
+
+// Expose Toolbar class directly for IIFE build
+if (typeof window !== "undefined") {
+  window.Toolbar = Toolbar;
+}

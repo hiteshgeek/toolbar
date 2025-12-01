@@ -1,0 +1,274 @@
+// ============================================================================
+// TOOLBAR BASE STYLES
+// Screenshot-toolbar inspired design with glassmorphism
+// ============================================================================
+@use "sass:map";
+@use "../../variables" as *;
+@use "../../mixins" as *;
+
+// ============================================================================
+// MAIN TOOLBAR CONTAINER
+// ============================================================================
+.toolbar {
+  // Apply dark theme by default
+  @include theme-colors("dark");
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  @include glassmorphic(var(--toolbar-bg), $toolbar-backdrop-blur);
+  border-radius: map.get($toolbar-border, radius);
+  padding: map.get($toolbar-spacing, padding);
+  gap: map.get($toolbar-spacing, gap);
+  z-index: map.get($toolbar-z-index, base);
+  @include elevation("sm");
+  font-family: map.get($toolbar-typography, font-family);
+  transition: background map.get($toolbar-animation, duration, fast) ease,
+    gap map.get($toolbar-animation, duration, fast) ease;
+
+  display: flex;
+  align-items: center;
+
+  // Hover effect - solid background
+  &:hover {
+    background: var(--toolbar-bg-solid);
+  }
+
+  // ============================================================================
+  // THEME VARIANTS
+  // ============================================================================
+  &--light {
+    @include theme-colors("light");
+  }
+
+  &--dark {
+    @include theme-colors("dark");
+  }
+
+  // ============================================================================
+  // ORIENTATION VARIANTS
+  // ============================================================================
+  &--horizontal {
+    flex-direction: row;
+
+    .toolbar__tools {
+      flex-direction: row;
+    }
+  }
+
+  &--vertical {
+    flex-direction: column;
+
+    .toolbar__tools {
+      flex-direction: column;
+    }
+  }
+
+  // ============================================================================
+  // POSITION VARIANTS
+  // ============================================================================
+  &--top-left,
+  &--top-center,
+  &--top-right,
+  &--center-left,
+  &--center,
+  &--center-right,
+  &--bottom-left,
+  &--bottom-center,
+  &--bottom-right {
+    position: fixed;
+  }
+
+  &--top-left {
+    top: 20px;
+    left: 20px;
+  }
+
+  &--top-center {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &--top-right {
+    top: 20px;
+    right: 20px;
+  }
+
+  &--center-left {
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+  }
+
+  &--center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  &--center-right {
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+  }
+
+  &--bottom-left {
+    bottom: 20px;
+    left: 20px;
+  }
+
+  &--bottom-center {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  &--bottom-right {
+    bottom: 20px;
+    right: 20px;
+  }
+
+  &--floating {
+    position: absolute;
+    @include elevation("sm");
+  }
+
+  // ============================================================================
+  // STATE VARIANTS
+  // ============================================================================
+  &--collapsed {
+    .toolbar__tools {
+      max-width: 0;
+      opacity: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+  }
+
+  &--dragging {
+    cursor: grabbing;
+    opacity: 0.9;
+    @include elevation("sm");
+  }
+
+  &--draggable {
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  // ============================================================================
+  // SIZE VARIANTS
+  // ============================================================================
+  &--small {
+    padding: 8px 12px;
+    gap: 8px;
+
+    .toolbar__tool {
+      height: map.get($toolbar-sizes, tool, small);
+      min-width: map.get($toolbar-sizes, tool, small);
+    }
+
+    .toolbar__tool-icon {
+      @include icon-size(map.get($toolbar-sizes, icon, small));
+    }
+  }
+
+  &--large {
+    padding: 16px 24px;
+    gap: 16px;
+
+    .toolbar__tool {
+      height: map.get($toolbar-sizes, tool, large);
+      min-width: map.get($toolbar-sizes, tool, large);
+    }
+
+    .toolbar__tool-icon {
+      @include icon-size(map.get($toolbar-sizes, icon, large));
+    }
+  }
+
+  // ============================================================================
+  // COMPACT VARIANT (screenshot toolbar style)
+  // ============================================================================
+  &--compact {
+    padding: 12px 20px;
+    gap: 12px;
+
+    .toolbar__tool {
+      padding: 0 12px;
+    }
+
+    .toolbar__separator {
+      margin: 0 4px;
+    }
+  }
+}
+
+// ============================================================================
+// TOOLBAR TOOLS CONTAINER
+// ============================================================================
+.toolbar__tools {
+  @include flex-start;
+  gap: map.get($toolbar-spacing, gap);
+  flex-wrap: nowrap;
+  overflow: visible;
+  max-width: none;
+  opacity: 1;
+  pointer-events: auto;
+  transition: max-width map.get($toolbar-animation, duration, fast) ease,
+    opacity map.get($toolbar-animation, duration, fast) ease;
+}
+
+// ============================================================================
+// RESPONSIVE DESIGN
+// ============================================================================
+@include respond-to("tablet") {
+  .toolbar {
+    padding: 10px 16px;
+    gap: 8px;
+
+    &__tool {
+      height: map.get($toolbar-sizes, tool, small);
+      min-width: map.get($toolbar-sizes, tool, small);
+    }
+  }
+}
+
+@include respond-to("mobile") {
+  .toolbar {
+    padding: 8px 12px;
+    gap: 6px;
+
+    &__tool-label {
+      display: none;
+    }
+  }
+}
+
+// ============================================================================
+// ACCESSIBILITY
+// ============================================================================
+@media (prefers-reduced-motion: reduce) {
+  .toolbar,
+  .toolbar__tool {
+    transition: none;
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .toolbar {
+    border-width: 2px;
+  }
+}
+
+// Hide on print
+@media print {
+  .toolbar {
+    display: none;
+  }
+}

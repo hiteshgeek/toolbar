@@ -1,0 +1,211 @@
+// ============================================================================
+// TOOLBAR GROUP STYLES
+// Organized tool grouping with visual separators
+// ============================================================================
+@use "sass:map";
+@use "../../variables" as *;
+@use "../../mixins" as *;
+
+// ============================================================================
+// GROUP CONTAINER
+// ============================================================================
+.toolbar__group {
+  @include flex-start;
+  gap: map.get($toolbar-spacing, gap);
+  padding: 0;
+  position: relative;
+  flex-shrink: 0;
+
+  // Vertical orientation
+  .toolbar--vertical & {
+    flex-direction: column;
+  }
+
+  // ============================================================================
+  // GROUP SEPARATOR (between groups)
+  // ============================================================================
+  & + & {
+    margin-left: map.get($toolbar-spacing, group-gap);
+
+    // Visual separator line before the group
+    &::before {
+      content: "";
+      position: absolute;
+      left: calc(#{map.get($toolbar-spacing, group-gap)} / -2 - 1px);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1px;
+      height: map.get($toolbar-sizes, separator, height);
+      background: var(--toolbar-border);
+      opacity: 0.5;
+    }
+
+    // Vertical toolbar adjustments
+    .toolbar--vertical & {
+      margin-left: 0;
+      margin-top: map.get($toolbar-spacing, group-gap);
+
+      &::before {
+        left: 50%;
+        top: calc(#{map.get($toolbar-spacing, group-gap)} / -2 - 1px);
+        transform: translateX(-50%);
+        width: map.get($toolbar-sizes, separator, height);
+        height: 1px;
+      }
+    }
+  }
+
+  // ============================================================================
+  // COLLAPSIBLE GROUP
+  // ============================================================================
+  &--collapsible {
+    .toolbar__group-header {
+      display: flex;
+    }
+  }
+
+  &--collapsed {
+    .toolbar__group-tools {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .toolbar__group-toggle svg {
+      transform: rotate(-90deg);
+    }
+  }
+}
+
+// ============================================================================
+// GROUP HEADER
+// ============================================================================
+.toolbar__group-header {
+  @include flex-between;
+  display: none; // Hidden by default, shown for collapsible groups
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--toolbar-border);
+}
+
+// ============================================================================
+// GROUP LABEL
+// ============================================================================
+.toolbar__group-label {
+  font-size: map.get($toolbar-typography, font-size, small);
+  font-weight: map.get($toolbar-typography, font-weight, medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--toolbar-text-secondary);
+  @include truncate;
+  user-select: none;
+}
+
+// ============================================================================
+// GROUP TOGGLE BUTTON
+// ============================================================================
+.toolbar__group-toggle {
+  @include reset-button;
+  @include flex-center;
+  @include hover-background;
+
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  color: var(--toolbar-text-secondary);
+
+  svg {
+    @include icon-size(12px);
+    transition: transform map.get($toolbar-animation, duration, fast) ease;
+  }
+
+  &:hover {
+    color: var(--toolbar-text);
+  }
+}
+
+// ============================================================================
+// GROUP TOOLS CONTAINER
+// ============================================================================
+.toolbar__group-tools {
+  @include flex-start;
+  gap: map.get($toolbar-spacing, gap);
+  max-height: none;
+  opacity: 1;
+  transition: max-height map.get($toolbar-animation, duration, medium) ease,
+    opacity map.get($toolbar-animation, duration, medium) ease;
+
+  .toolbar--vertical & {
+    flex-direction: column;
+  }
+}
+
+// ============================================================================
+// GROUP VARIANTS
+// ============================================================================
+
+// Highlighted group (with subtle background)
+.toolbar__group--highlighted {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  border-radius: map.get($toolbar-border, tool-radius);
+}
+
+// Primary group (emphasized with accent color)
+.toolbar__group--primary {
+  .toolbar__tool {
+    &--active {
+      background: $toolbar-primary;
+      color: #ffffff;
+    }
+  }
+}
+
+// Compact group (tighter spacing)
+.toolbar__group--compact {
+  gap: 4px;
+
+  .toolbar__group-tools {
+    gap: 4px;
+  }
+}
+
+// ============================================================================
+// RESPONSIVE ADJUSTMENTS
+// ============================================================================
+@include respond-to("tablet") {
+  .toolbar__group {
+    gap: 8px;
+
+    & + & {
+      margin-left: 8px;
+    }
+
+    &-tools {
+      gap: 8px;
+    }
+  }
+}
+
+@include respond-to("mobile") {
+  .toolbar__group {
+    gap: 6px;
+
+    & + & {
+      margin-left: 6px;
+
+      &::before {
+        height: 16px;
+      }
+    }
+
+    &-tools {
+      gap: 6px;
+    }
+
+    &-label {
+      display: none; // Hide labels on mobile for space
+    }
+  }
+}
