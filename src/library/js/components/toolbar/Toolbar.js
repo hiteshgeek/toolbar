@@ -43,8 +43,8 @@ export default class Toolbar {
     // Define valid sizes
     this.validSizes = ["small", "medium", "large"];
 
-    // Define valid showLabels modes
-    this.validShowLabels = ["icon", "label", "both"];
+    // Define valid display modes
+    this.validDisplayModes = ["icon", "label", "both"];
 
     // Validate and set position (default to bottom-center if invalid)
     let position = options.position || "bottom-center";
@@ -64,19 +64,21 @@ export default class Toolbar {
       size = "medium";
     }
 
-    // Validate and set showLabels (default to "both" if invalid)
-    let showLabels = options.showLabels !== undefined ? options.showLabels : "both";
+    // Validate and set displayMode (default to "both" if invalid)
+    // Support legacy showLabels option for backwards compatibility
+    let displayMode = options.displayMode !== undefined ? options.displayMode :
+                      (options.showLabels !== undefined ? options.showLabels : "both");
 
     // Handle legacy boolean values for backwards compatibility
-    if (typeof showLabels === "boolean") {
-      showLabels = showLabels ? "both" : "icon";
+    if (typeof displayMode === "boolean") {
+      displayMode = displayMode ? "both" : "icon";
     }
 
-    if (!this.validShowLabels.includes(showLabels)) {
+    if (!this.validDisplayModes.includes(displayMode)) {
       console.warn(
-        `Invalid showLabels mode: ${showLabels}. Defaulting to "both". Valid modes are: ${this.validShowLabels.join(", ")}`
+        `Invalid displayMode: ${displayMode}. Defaulting to "both". Valid modes are: ${this.validDisplayModes.join(", ")}`
       );
-      showLabels = "both";
+      displayMode = "both";
     }
 
     this.options = {
@@ -92,7 +94,7 @@ export default class Toolbar {
       collapsible:
         options.collapsible !== undefined ? options.collapsible : false,
       collapsed: options.collapsed || false,
-      showLabels: showLabels, // Label display mode: "icon", "label", "both"
+      displayMode: displayMode, // Display mode: "icon", "label", "both"
       iconSize: options.iconSize || "medium",
       customClass: options.customClass || "",
       tools: options.tools || [],
@@ -645,6 +647,7 @@ export default class Toolbar {
       dropdown: tool.dropdown || null,
       badge: tool.badge || null,
       customClass: tool.customClass || "",
+      forceDisplayMode: tool.forceDisplayMode || null, // "icon", "label", or null
     };
     this.tools.set(toolConfig.id, toolConfig);
     return toolConfig.id;
@@ -881,23 +884,23 @@ export default class Toolbar {
   }
 
   /**
-   * Set label display mode for toolbar buttons
+   * Set display mode for toolbar buttons
    * @param {string} mode - "icon", "label", or "both"
    */
-  setShowLabels(mode) {
+  setDisplayMode(mode) {
     // Handle legacy boolean values for backwards compatibility
     if (typeof mode === "boolean") {
       mode = mode ? "both" : "icon";
     }
 
-    if (!this.validShowLabels.includes(mode)) {
+    if (!this.validDisplayModes.includes(mode)) {
       console.warn(
-        `Invalid showLabels mode: ${mode}. Valid modes are: ${this.validShowLabels.join(", ")}`
+        `Invalid displayMode: ${mode}. Valid modes are: ${this.validDisplayModes.join(", ")}`
       );
       return;
     }
 
-    this.options.showLabels = mode;
+    this.options.displayMode = mode;
 
     // Preserve all currently active tools before re-rendering
     const activeTools = [];
@@ -957,24 +960,48 @@ export default class Toolbar {
     // Restore the state
     this.state.activeTool = currentActiveTool;
 
-    this.eventEmitter.emit("labels:change", { showLabels: mode });
+    this.eventEmitter.emit("displayMode:change", { displayMode: mode });
   }
 
   /**
-   * Get current label display mode
+   * Legacy method for backwards compatibility
+   * @deprecated Use setDisplayMode instead
+   */
+  setShowLabels(mode) {
+    return this.setDisplayMode(mode);
+  }
+
+  /**
+   * Get current display mode
    * @returns {string} Current mode ("icon", "label", or "both")
    */
-  getShowLabels() {
-    return this.options.showLabels;
+  getDisplayMode() {
+    return this.options.displayMode;
   }
 
   /**
-   * Cycle to the next showLabels mode
+   * Legacy method for backwards compatibility
+   * @deprecated Use getDisplayMode instead
+   */
+  getShowLabels() {
+    return this.getDisplayMode();
+  }
+
+  /**
+   * Cycle to the next display mode
+   */
+  nextDisplayMode() {
+    const currentIndex = this.validDisplayModes.indexOf(this.options.displayMode);
+    const nextIndex = (currentIndex + 1) % this.validDisplayModes.length;
+    this.setDisplayMode(this.validDisplayModes[nextIndex]);
+  }
+
+  /**
+   * Legacy method for backwards compatibility
+   * @deprecated Use nextDisplayMode instead
    */
   nextShowLabelsMode() {
-    const currentIndex = this.validShowLabels.indexOf(this.options.showLabels);
-    const nextIndex = (currentIndex + 1) % this.validShowLabels.length;
-    this.setShowLabels(this.validShowLabels[nextIndex]);
+    return this.nextDisplayMode();
   }
 
   /**
@@ -1284,20 +1311,28 @@ export default class Toolbar {
       button.setAttribute("aria-pressed", "false");
     }
 
-    // Render icon based on showLabels mode
-    if (tool.icon && (this.options.showLabels === "icon" || this.options.showLabels === "both")) {
+    // Determine effective display mode for this tool
+    const effectiveMode = tool.forceDisplayMode || this.options.displayMode;
+
+    // Render icon based on effective display mode
+    if (tool.icon && (effectiveMode === "icon" || effectiveMode === "both")) {
       const icon = document.createElement("span");
       icon.className = "toolbar__tool-icon";
       icon.innerHTML = Toolbar._resolveIcon(tool.icon);
       button.appendChild(icon);
     }
 
-    // Render label based on showLabels mode
-    if (tool.label && (this.options.showLabels === "label" || this.options.showLabels === "both")) {
+    // Render label based on effective display mode
+    if (tool.label && (effectiveMode === "label" || effectiveMode === "both")) {
       const label = document.createElement("span");
       label.className = "toolbar__tool-label";
       label.textContent = tool.label;
       button.appendChild(label);
+    }
+
+    // Add special class if tool has forced display mode
+    if (tool.forceDisplayMode) {
+      button.classList.add(`toolbar__tool--force-${tool.forceDisplayMode}`);
     }
 
     if (tool.badge) {

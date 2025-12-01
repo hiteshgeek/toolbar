@@ -49,7 +49,7 @@ if (typeof window !== "undefined") {
     size: "medium", //small, medium, large
     position: "bottom-center",
     theme: "system",
-    showLabels: "icon", // "icon", "label", or "both"
+    displayMode: "icon", // "icon", "label", or "both"
     draggable: true,
     snapToPosition: true,
     allowedSnapPositions: ["bottom-left", "bottom-center", "bottom-right"],
@@ -142,13 +142,13 @@ if (typeof window !== "undefined") {
           },
           { type: "separator" },
           {
-            id: "toggle-labels",
-            label: "Labels",
+            id: "toggle-display-mode",
+            label: "Display",
             icon: "utils.menu",
-            tooltip: "Labels: Icons Only",
+            tooltip: "Display: Icons Only",
             customClass: "toolbar__tool--active",
             action: () => {
-              basicToolbar.nextShowLabelsMode();
+              basicToolbar.nextDisplayMode();
             },
           },
           { type: "separator" },
@@ -165,6 +165,23 @@ if (typeof window !== "undefined") {
             icon: "navigation.minus",
             tooltip: "Zoom out",
             action: () => console.log("Zoom out"),
+          },
+          { type: "separator" },
+          {
+            id: "icon-only-demo",
+            label: "Help",
+            icon: "navigation.circle_question",
+            tooltip: "Help (Always Icon Only)",
+            forceDisplayMode: "icon",
+            action: () => console.log("Help"),
+          },
+          {
+            id: "label-only-demo",
+            label: "Shortcuts",
+            icon: "utils.menu",
+            tooltip: "Keyboard Shortcuts (Always Label Only)",
+            forceDisplayMode: "label",
+            action: () => console.log("Shortcuts"),
           },
         ],
       },
@@ -216,9 +233,9 @@ if (typeof window !== "undefined") {
     },
   });
 
-  // Listen for label mode changes
-  basicToolbar.on("labels:change", (data) => {
-    updateLabelModeVisuals(data.showLabels);
+  // Listen for display mode changes
+  basicToolbar.on("displayMode:change", (data) => {
+    updateDisplayModeVisuals(data.displayMode);
   });
 
   window.basicToolbar = basicToolbar;
@@ -258,17 +275,17 @@ if (typeof window !== "undefined") {
     }
   };
 
-  const updateLabelModeVisuals = (mode) => {
+  const updateDisplayModeVisuals = (mode) => {
     const stateLabel = LABEL_MODE_CONFIG.labels[mode];
     const newIcon = LABEL_MODE_CONFIG.icons[mode];
 
-    // Only update if labels toggle exists in current tool set
-    const labelsTool = basicToolbar.tools.get("toggle-labels");
-    if (labelsTool) {
-      basicToolbar.updateTool("toggle-labels", {
+    // Only update if display mode toggle exists in current tool set
+    const displayTool = basicToolbar.tools.get("toggle-display-mode");
+    if (displayTool) {
+      basicToolbar.updateTool("toggle-display-mode", {
         label: stateLabel,
         icon: newIcon,
-        tooltip: `Labels: ${stateLabel}`,
+        tooltip: `Display: ${stateLabel}`,
         // Maintain the active class during updates
         customClass: "toolbar__tool--active",
       });
@@ -299,12 +316,12 @@ if (typeof window !== "undefined") {
       sizeBtn.setAttribute("aria-pressed", "true");
     }
 
-    const labelsBtn = basicToolbar.toolsContainer.querySelector(
-      '[data-tool-id="toggle-labels"]'
+    const displayBtn = basicToolbar.toolsContainer.querySelector(
+      '[data-tool-id="toggle-display-mode"]'
     );
-    if (labelsBtn) {
-      labelsBtn.classList.add("toolbar__tool--active");
-      labelsBtn.setAttribute("aria-pressed", "true");
+    if (displayBtn) {
+      displayBtn.classList.add("toolbar__tool--active");
+      displayBtn.setAttribute("aria-pressed", "true");
     }
   });
 
@@ -314,7 +331,7 @@ if (typeof window !== "undefined") {
     // Re-initialize button visual states when switching tool sets
     updateThemeVisuals(basicToolbar.getTheme());
     updateSizeVisuals(basicToolbar.getSize());
-    updateLabelModeVisuals(basicToolbar.getShowLabels());
+    updateDisplayModeVisuals(basicToolbar.getDisplayMode());
   });
 
   // ============================================================================
@@ -324,5 +341,5 @@ if (typeof window !== "undefined") {
   // Initialize button states
   updateThemeVisuals(basicToolbar.getTheme());
   updateSizeVisuals(basicToolbar.getSize());
-  updateLabelModeVisuals(basicToolbar.getShowLabels());
+  updateDisplayModeVisuals(basicToolbar.getDisplayMode());
 }

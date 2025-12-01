@@ -36,6 +36,34 @@
   border-radius: map.get($toolbar-border, tool-radius);
 }
 
+// ============================================================================
+// FORCED DISPLAY MODES (Override global mode for specific tools)
+// ============================================================================
+
+// Force icon-only display (always circular, regardless of global mode)
+.toolbar__tool--force-icon {
+  width: map.get($toolbar-sizes, tool, default) !important;
+  min-width: map.get($toolbar-sizes, tool, default) !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+}
+
+// Force label-only display (always rectangular with label, regardless of global mode)
+.toolbar__tool--force-label {
+  min-width: map.get($toolbar-sizes, tool, default) !important;
+  width: auto !important;
+  padding: 0 16px !important;
+  border-radius: map.get($toolbar-border, tool-radius) !important;
+}
+
+// Force both icon and label display (regardless of global mode)
+.toolbar__tool--force-both {
+  min-width: map.get($toolbar-sizes, tool, default) !important;
+  width: auto !important;
+  padding: map.get($toolbar-spacing, tool-padding) !important;
+  border-radius: map.get($toolbar-border, tool-radius) !important;
+}
+
 .toolbar__tool {
   @include reset-button;
   @include flex-center;
