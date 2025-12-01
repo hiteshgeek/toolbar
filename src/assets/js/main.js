@@ -27,6 +27,18 @@ if (typeof window !== "undefined") {
     theme: "system",
     showLabels: false,
     draggable: true,
+    snapToPosition: true,
+    allowedSnapPositions: [
+      // "top-left",
+      // "top-center",
+      // "top-right",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right",
+      // "center-left",
+      // "center",
+      // "center-right",
+    ],
     tools: [
       {
         id: "undo",

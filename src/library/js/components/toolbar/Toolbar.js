@@ -27,32 +27,8 @@ export default class Toolbar {
   }
 
   constructor(options = {}) {
-    this.options = {
-      container: options.container || document.body,
-      position: options.position || "top",
-      orientation: options.orientation || "horizontal",
-      theme: options.theme || "system", // Default to system preference
-      draggable: options.draggable !== undefined ? options.draggable : false,
-      collapsible:
-        options.collapsible !== undefined ? options.collapsible : false,
-      collapsed: options.collapsed || false,
-      showLabels: options.showLabels !== undefined ? options.showLabels : true,
-      iconSize: options.iconSize || "medium",
-      customClass: options.customClass || "",
-      tools: options.tools || [],
-      groups: options.groups || [],
-      onToolClick: options.onToolClick || null,
-      onStateChange: options.onStateChange || null,
-      onThemeChange: options.onThemeChange || null,
-    };
-
-    // Validate position logic
-    const validPositions = [
-      "top",
-      "bottom",
-      "left",
-      "right",
-      "floating", // Basic
+    // Define valid positions
+    this.validPositions = [
       "top-left",
       "top-center",
       "top-right",
@@ -64,13 +40,51 @@ export default class Toolbar {
       "center-right",
     ];
 
-    // If invalid, fallback to bottom-center
-    if (
-      !validPositions.includes(this.options.position) &&
-      !this.options.position.startsWith("top") &&
-      !this.options.position.startsWith("bottom")
-    ) {
-      // Keep user input if reasonably valid, otherwise default
+    // Validate and set position (default to bottom-center if invalid)
+    let position = options.position || "bottom-center";
+    if (!this.validPositions.includes(position)) {
+      console.warn(
+        `Invalid position: ${position}. Defaulting to bottom-center. Valid positions are: ${this.validPositions.join(", ")}`
+      );
+      position = "bottom-center";
+    }
+
+    this.options = {
+      container: options.container || document.body,
+      position: position,
+      orientation: options.orientation || "horizontal",
+      theme: options.theme || "system", // Default to system preference
+      draggable: options.draggable !== undefined ? options.draggable : false,
+      snapToPosition:
+        options.snapToPosition !== undefined ? options.snapToPosition : false,
+      allowedSnapPositions: options.allowedSnapPositions || this.validPositions,
+      collapsible:
+        options.collapsible !== undefined ? options.collapsible : false,
+      collapsed: options.collapsed || false,
+      showLabels: options.showLabels !== undefined ? options.showLabels : true,
+      iconSize: options.iconSize || "medium",
+      customClass: options.customClass || "",
+      tools: options.tools || [],
+      groups: options.groups || [],
+      onToolClick: options.onToolClick || null,
+      onStateChange: options.onStateChange || null,
+      onThemeChange: options.onThemeChange || null,
+      onPositionChange: options.onPositionChange || null,
+    };
+
+    // Validate allowedSnapPositions
+    this.options.allowedSnapPositions =
+      this.options.allowedSnapPositions.filter((pos) => {
+        if (!this.validPositions.includes(pos)) {
+          console.warn(`Invalid snap position: ${pos}. Ignoring.`);
+          return false;
+        }
+        return true;
+      });
+
+    // If no valid snap positions, use all valid positions
+    if (this.options.allowedSnapPositions.length === 0) {
+      this.options.allowedSnapPositions = this.validPositions;
     }
 
     this.state = {
@@ -78,6 +92,7 @@ export default class Toolbar {
       collapsed: this.options.collapsed,
       position: { x: 0, y: 0 },
       isDragging: false,
+      snapHintsVisible: false,
     };
 
     this.tools = new Map();
@@ -86,6 +101,7 @@ export default class Toolbar {
     this.element = null;
     this.toolsContainer = null;
     this.systemThemeListener = null;
+    this.snapHintsContainer = null;
 
     this._init();
   }
@@ -272,9 +288,21 @@ export default class Toolbar {
       maxY: parent.clientHeight - this.element.offsetHeight,
     };
 
+    // Show snap hints if snap mode is enabled
+    if (this.options.snapToPosition) {
+      this._showSnapHints();
+    }
+
     const onMouseMove = this._onDragMove.bind(this);
     const onMouseUp = () => {
       this.state.isDragging = false;
+
+      // Hide snap hints
+      if (this.options.snapToPosition) {
+        this._hideSnapHints();
+        this._snapToNearestPosition();
+      }
+
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       this.element.classList.remove("toolbar--dragging");
@@ -306,6 +334,192 @@ export default class Toolbar {
     this.element.style.left = `${newLeft}px`;
     this.element.style.top = `${newTop}px`;
     this.state.position = { x: newLeft, y: newTop };
+
+    // Highlight nearest snap position if snap mode is enabled
+    if (this.options.snapToPosition) {
+      this._highlightNearestSnapHint();
+    }
+  }
+
+  /**
+   * Show snap position hints
+   */
+  _showSnapHints() {
+    if (!this.snapHintsContainer) {
+      this._createSnapHints();
+    }
+    this.snapHintsContainer.classList.add("toolbar__snap-hints--visible");
+    this.state.snapHintsVisible = true;
+  }
+
+  /**
+   * Hide snap position hints
+   */
+  _hideSnapHints() {
+    if (this.snapHintsContainer) {
+      this.snapHintsContainer.classList.remove("toolbar__snap-hints--visible");
+    }
+    this.state.snapHintsVisible = false;
+  }
+
+  /**
+   * Create snap position hint elements
+   */
+  _createSnapHints() {
+    const container =
+      typeof this.options.container === "string"
+        ? document.querySelector(this.options.container)
+        : this.options.container;
+
+    this.snapHintsContainer = document.createElement("div");
+    this.snapHintsContainer.className = "toolbar__snap-hints";
+
+    this.options.allowedSnapPositions.forEach((position) => {
+      const hint = document.createElement("div");
+      hint.className = `toolbar__snap-hint toolbar__snap-hint--${position}`;
+      hint.dataset.position = position;
+      this.snapHintsContainer.appendChild(hint);
+    });
+
+    container.appendChild(this.snapHintsContainer);
+  }
+
+  /**
+   * Highlight the nearest snap hint based on current toolbar position
+   */
+  _highlightNearestSnapHint() {
+    if (!this.snapHintsContainer) return;
+
+    const nearestPosition = this._findNearestSnapPosition();
+    const hints = this.snapHintsContainer.querySelectorAll(".toolbar__snap-hint");
+
+    hints.forEach((hint) => {
+      if (hint.dataset.position === nearestPosition) {
+        hint.classList.add("toolbar__snap-hint--active");
+      } else {
+        hint.classList.remove("toolbar__snap-hint--active");
+      }
+    });
+  }
+
+  /**
+   * Find the nearest snap position based on current toolbar position
+   */
+  _findNearestSnapPosition() {
+    const parent = this.element.offsetParent || document.body;
+    const rect = this.element.getBoundingClientRect();
+    const parentRect = parent.getBoundingClientRect();
+
+    // Get toolbar center relative to parent
+    const toolbarCenterX =
+      rect.left + rect.width / 2 - parentRect.left - parent.clientLeft;
+    const toolbarCenterY =
+      rect.top + rect.height / 2 - parentRect.top - parent.clientTop;
+
+    const parentWidth = parent.clientWidth;
+    const parentHeight = parent.clientHeight;
+
+    let nearestPosition = null;
+    let minDistance = Infinity;
+
+    this.options.allowedSnapPositions.forEach((position) => {
+      const coords = this._getPositionCoordinates(
+        position,
+        parentWidth,
+        parentHeight
+      );
+      const distance = Math.sqrt(
+        Math.pow(coords.x - toolbarCenterX, 2) +
+          Math.pow(coords.y - toolbarCenterY, 2)
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestPosition = position;
+      }
+    });
+
+    return nearestPosition;
+  }
+
+  /**
+   * Get coordinates for a position name (center point)
+   */
+  _getPositionCoordinates(position, parentWidth, parentHeight) {
+    const coords = { x: 0, y: 0 };
+
+    // Horizontal positioning
+    if (position.includes("left")) {
+      coords.x = parentWidth * 0.1; // 10% from left
+    } else if (position.includes("right")) {
+      coords.x = parentWidth * 0.9; // 90% from left (10% from right)
+    } else {
+      coords.x = parentWidth * 0.5; // Center
+    }
+
+    // Vertical positioning
+    if (position.includes("top")) {
+      coords.y = parentHeight * 0.1; // 10% from top
+    } else if (position.includes("bottom")) {
+      coords.y = parentHeight * 0.9; // 90% from top (10% from bottom)
+    } else {
+      coords.y = parentHeight * 0.5; // Center
+    }
+
+    return coords;
+  }
+
+  /**
+   * Snap toolbar to nearest allowed position
+   */
+  _snapToNearestPosition() {
+    const nearestPosition = this._findNearestSnapPosition();
+
+    if (nearestPosition) {
+      this._setPosition(nearestPosition, true);
+
+      if (this.options.onPositionChange) {
+        this.options.onPositionChange(nearestPosition);
+      }
+
+      this.eventEmitter.emit("position:change", { position: nearestPosition });
+    }
+  }
+
+  /**
+   * Set toolbar to a specific position with optional animation
+   */
+  _setPosition(position, animate = false) {
+    if (!this.validPositions.includes(position)) {
+      console.warn(`Invalid position: ${position}`);
+      return;
+    }
+
+    this.options.position = position;
+
+    // Remove all position classes
+    this.validPositions.forEach((pos) => {
+      this.element.classList.remove(`toolbar--${pos}`);
+    });
+
+    // Add new position class
+    this.element.classList.add(`toolbar--${position}`);
+
+    // Add animation class if requested
+    if (animate) {
+      this.element.classList.add("toolbar--snapping");
+      setTimeout(() => {
+        this.element.classList.remove("toolbar--snapping");
+      }, 300); // Match transition duration
+    }
+
+    // Reset positioning styles to let CSS handle it
+    this.element.style.position = "";
+    this.element.style.left = "";
+    this.element.style.top = "";
+    this.element.style.right = "";
+    this.element.style.bottom = "";
+    this.element.style.transform = "";
   }
 
   _onToolClick(e) {
