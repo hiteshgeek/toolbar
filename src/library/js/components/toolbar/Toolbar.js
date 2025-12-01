@@ -43,6 +43,9 @@ export default class Toolbar {
     // Define valid sizes
     this.validSizes = ["small", "medium", "large"];
 
+    // Define valid showLabels modes
+    this.validShowLabels = ["icon", "label", "both"];
+
     // Validate and set position (default to bottom-center if invalid)
     let position = options.position || "bottom-center";
     if (!this.validPositions.includes(position)) {
@@ -61,12 +64,27 @@ export default class Toolbar {
       size = "medium";
     }
 
+    // Validate and set showLabels (default to "both" if invalid)
+    let showLabels = options.showLabels !== undefined ? options.showLabels : "both";
+
+    // Handle legacy boolean values for backwards compatibility
+    if (typeof showLabels === "boolean") {
+      showLabels = showLabels ? "both" : "icon";
+    }
+
+    if (!this.validShowLabels.includes(showLabels)) {
+      console.warn(
+        `Invalid showLabels mode: ${showLabels}. Defaulting to "both". Valid modes are: ${this.validShowLabels.join(", ")}`
+      );
+      showLabels = "both";
+    }
+
     this.options = {
       container: options.container || document.body,
       position: position,
       orientation: options.orientation || "horizontal",
       theme: options.theme || "system", // Default to system preference
-      size: size, // Toolbar size: small, medium, large, xlarge
+      size: size, // Toolbar size: small, medium, large
       draggable: options.draggable !== undefined ? options.draggable : false,
       snapToPosition:
         options.snapToPosition !== undefined ? options.snapToPosition : false,
@@ -74,7 +92,7 @@ export default class Toolbar {
       collapsible:
         options.collapsible !== undefined ? options.collapsible : false,
       collapsed: options.collapsed || false,
-      showLabels: options.showLabels !== undefined ? options.showLabels : true,
+      showLabels: showLabels, // Label display mode: "icon", "label", "both"
       iconSize: options.iconSize || "medium",
       customClass: options.customClass || "",
       tools: options.tools || [],
@@ -863,11 +881,23 @@ export default class Toolbar {
   }
 
   /**
-   * Set whether to show labels on toolbar buttons
-   * @param {boolean} show - True to show labels, false to hide them
+   * Set label display mode for toolbar buttons
+   * @param {string} mode - "icon", "label", or "both"
    */
-  setShowLabels(show) {
-    this.options.showLabels = show;
+  setShowLabels(mode) {
+    // Handle legacy boolean values for backwards compatibility
+    if (typeof mode === "boolean") {
+      mode = mode ? "both" : "icon";
+    }
+
+    if (!this.validShowLabels.includes(mode)) {
+      console.warn(
+        `Invalid showLabels mode: ${mode}. Valid modes are: ${this.validShowLabels.join(", ")}`
+      );
+      return;
+    }
+
+    this.options.showLabels = mode;
 
     // Preserve all currently active tools before re-rendering
     const activeTools = [];
@@ -880,10 +910,16 @@ export default class Toolbar {
         }
       });
 
-    if (show) {
+    // Remove all label-related classes
+    this.toolsContainer.classList.remove("with_label", "label_only", "icon_only");
+
+    // Add appropriate class based on mode
+    if (mode === "both") {
       this.toolsContainer.classList.add("with_label");
-    } else {
-      this.toolsContainer.classList.remove("with_label");
+    } else if (mode === "label") {
+      this.toolsContainer.classList.add("label_only");
+    } else if (mode === "icon") {
+      this.toolsContainer.classList.add("icon_only");
     }
 
     // Store the current active tool ID
@@ -909,7 +945,7 @@ export default class Toolbar {
       '[data-tool-id="toggle-labels"]'
     );
     if (toggleButton) {
-      if (show) {
+      if (mode !== "icon") {
         toggleButton.classList.add("toolbar__tool--active");
         toggleButton.setAttribute("aria-pressed", "true");
       } else {
@@ -921,7 +957,24 @@ export default class Toolbar {
     // Restore the state
     this.state.activeTool = currentActiveTool;
 
-    this.eventEmitter.emit("labels:change", { showLabels: show });
+    this.eventEmitter.emit("labels:change", { showLabels: mode });
+  }
+
+  /**
+   * Get current label display mode
+   * @returns {string} Current mode ("icon", "label", or "both")
+   */
+  getShowLabels() {
+    return this.options.showLabels;
+  }
+
+  /**
+   * Cycle to the next showLabels mode
+   */
+  nextShowLabelsMode() {
+    const currentIndex = this.validShowLabels.indexOf(this.options.showLabels);
+    const nextIndex = (currentIndex + 1) % this.validShowLabels.length;
+    this.setShowLabels(this.validShowLabels[nextIndex]);
   }
 
   /**
@@ -1231,14 +1284,16 @@ export default class Toolbar {
       button.setAttribute("aria-pressed", "false");
     }
 
-    if (tool.icon) {
+    // Render icon based on showLabels mode
+    if (tool.icon && (this.options.showLabels === "icon" || this.options.showLabels === "both")) {
       const icon = document.createElement("span");
       icon.className = "toolbar__tool-icon";
       icon.innerHTML = Toolbar._resolveIcon(tool.icon);
       button.appendChild(icon);
     }
 
-    if (this.options.showLabels && tool.label) {
+    // Render label based on showLabels mode
+    if (tool.label && (this.options.showLabels === "label" || this.options.showLabels === "both")) {
       const label = document.createElement("span");
       label.className = "toolbar__tool-label";
       label.textContent = tool.label;

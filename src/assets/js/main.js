@@ -26,6 +26,20 @@ if (typeof window !== "undefined") {
     },
   };
 
+  const LABEL_MODE_CONFIG = {
+    order: ["icon", "both", "label"],
+    icons: {
+      icon: "utils.menu",
+      both: "utils.menu",
+      label: "utils.menu",
+    },
+    labels: {
+      icon: "Icons Only",
+      both: "Icons & Labels",
+      label: "Labels Only",
+    },
+  };
+
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
@@ -35,7 +49,7 @@ if (typeof window !== "undefined") {
     size: "medium", //small, medium, large
     position: "bottom-center",
     theme: "system",
-    showLabels: false,
+    showLabels: "icon", // "icon", "label", or "both"
     draggable: true,
     snapToPosition: true,
     allowedSnapPositions: ["bottom-left", "bottom-center", "bottom-right"],
@@ -131,11 +145,10 @@ if (typeof window !== "undefined") {
             id: "toggle-labels",
             label: "Labels",
             icon: "utils.menu",
-            tooltip: "Toggle labels",
-            type: "toggle",
+            tooltip: "Labels: Icons Only",
+            customClass: "toolbar__tool--active",
             action: () => {
-              const newState = !basicToolbar.options.showLabels;
-              basicToolbar.setShowLabels(newState);
+              basicToolbar.nextShowLabelsMode();
             },
           },
           { type: "separator" },
@@ -203,6 +216,11 @@ if (typeof window !== "undefined") {
     },
   });
 
+  // Listen for label mode changes
+  basicToolbar.on("labels:change", (data) => {
+    updateLabelModeVisuals(data.showLabels);
+  });
+
   window.basicToolbar = basicToolbar;
 
   // ============================================================================
@@ -240,13 +258,30 @@ if (typeof window !== "undefined") {
     }
   };
 
+  const updateLabelModeVisuals = (mode) => {
+    const stateLabel = LABEL_MODE_CONFIG.labels[mode];
+    const newIcon = LABEL_MODE_CONFIG.icons[mode];
+
+    // Only update if labels toggle exists in current tool set
+    const labelsTool = basicToolbar.tools.get("toggle-labels");
+    if (labelsTool) {
+      basicToolbar.updateTool("toggle-labels", {
+        label: stateLabel,
+        icon: newIcon,
+        tooltip: `Labels: ${stateLabel}`,
+        // Maintain the active class during updates
+        customClass: "toolbar__tool--active",
+      });
+    }
+  };
+
   // ============================================================================
   // ENFORCE "ALWAYS ACTIVE" STATE
   // ============================================================================
 
-  // When other toggle buttons (like "Labels") are clicked, the Toolbar library
+  // When other toggle buttons are clicked, the Toolbar library
   // normally removes the active class from all other buttons.
-  // We listen for this event and immediately re-apply the active class to our theme and size buttons.
+  // We listen for this event and immediately re-apply the active class to our control buttons.
   basicToolbar.on("tool:activate", () => {
     const themeBtn = basicToolbar.toolsContainer.querySelector(
       '[data-tool-id="theme-toggle"]'
@@ -263,14 +298,23 @@ if (typeof window !== "undefined") {
       sizeBtn.classList.add("toolbar__tool--active");
       sizeBtn.setAttribute("aria-pressed", "true");
     }
+
+    const labelsBtn = basicToolbar.toolsContainer.querySelector(
+      '[data-tool-id="toggle-labels"]'
+    );
+    if (labelsBtn) {
+      labelsBtn.classList.add("toolbar__tool--active");
+      labelsBtn.setAttribute("aria-pressed", "true");
+    }
   });
 
   // Listen for tool set changes
   basicToolbar.on("toolset:change", (data) => {
     console.log("Tool set changed:", data);
-    // Re-initialize theme and size button visual state if switching to view tools
+    // Re-initialize button visual states when switching tool sets
     updateThemeVisuals(basicToolbar.getTheme());
     updateSizeVisuals(basicToolbar.getSize());
+    updateLabelModeVisuals(basicToolbar.getShowLabels());
   });
 
   // ============================================================================
@@ -280,9 +324,5 @@ if (typeof window !== "undefined") {
   // Initialize button states
   updateThemeVisuals(basicToolbar.getTheme());
   updateSizeVisuals(basicToolbar.getSize());
-
-  // Initialize labels toggle state if needed
-  if (basicToolbar.options.showLabels) {
-    basicToolbar.setActiveTool("toggle-labels");
-  }
+  updateLabelModeVisuals(basicToolbar.getShowLabels());
 }

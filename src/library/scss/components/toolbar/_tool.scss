@@ -12,13 +12,28 @@
 // TOOL BUTTON
 // ============================================================================
 
+// ============================================================================
+// LABEL MODE CLASSES
+// ============================================================================
+
+// Both icon and label (default when labels are shown)
 .toolbar__tools.with_label .toolbar__tool {
   min-width: map.get($toolbar-sizes, tool, default);
 }
 
-.toolbar__tools:not(.with_label) .toolbar__tool {
+// Icon only (default when labels are hidden)
+.toolbar__tools:not(.with_label) .toolbar__tool,
+.toolbar__tools.icon_only .toolbar__tool {
   min-width: auto;
   width: map.get($toolbar-sizes, tool, default);
+}
+
+// Label only (hide icons, show only labels)
+.toolbar__tools.label_only .toolbar__tool {
+  min-width: map.get($toolbar-sizes, tool, default);
+  width: auto;
+  padding: 0 16px;
+  border-radius: map.get($toolbar-border, tool-radius);
 }
 
 .toolbar__tool {
