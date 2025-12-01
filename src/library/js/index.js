@@ -1,4 +1,4 @@
-import { Toolbar } from "./components/Toolbar.js";
+import { Toolbar } from "./components/toolbar/Toolbar.js";
 
 export { Toolbar };
 

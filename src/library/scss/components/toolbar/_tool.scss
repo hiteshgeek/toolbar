@@ -28,7 +28,8 @@
   font-weight: map.get($toolbar-typography, font-weight, medium);
   white-space: nowrap;
   user-select: none;
-  transition: all map.get($toolbar-animation, duration, fast) ease;
+  transition: transform map.get($toolbar-animation, duration, fast) ease,
+    background-color map.get($toolbar-animation, duration, fast) ease;
   box-shadow: var(--toolbar-shadow);
   @include elevation("xs");
 
@@ -44,6 +45,7 @@
 
   &:focus-visible {
     @include focus-ring($toolbar-primary);
+    border-radius: 999px;
   }
 
   &:disabled {

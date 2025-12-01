@@ -1,10 +1,11 @@
 /**
  * Toolbar - Modular Toolbar System
- * @version 1.0.3
+ * @version 1.0.4
  */
 
 import { ToolbarEventEmitter } from "./ToolbarEmitter.js";
-import { icons } from "../utils/icons.js";
+import { icons } from "../../utils/icons.js";
+import Tooltip from "../tooltip/Tooltip.js"; // Import the Tooltip class
 
 export default class Toolbar {
   static _resolveIcon(iconPath) {
@@ -44,22 +45,31 @@ export default class Toolbar {
       onStateChange: options.onStateChange || null,
     };
 
-    //check correct position
-
+    // Validate position logic
     const validPositions = [
+      "top",
+      "bottom",
+      "left",
+      "right",
+      "floating", // Basic
       "top-left",
       "top-center",
       "top-right",
-      "center-left",
-      "center",
-      "center-right",
       "bottom-left",
       "bottom-center",
       "bottom-right",
+      "center-left",
+      "center",
+      "center-right",
     ];
 
-    if (!validPositions.includes(this.options.position)) {
-      this.options.position = "bottom-center";
+    // If invalid, fallback to bottom-center
+    if (
+      !validPositions.includes(this.options.position) &&
+      !this.options.position.startsWith("top") &&
+      !this.options.position.startsWith("bottom")
+    ) {
+      // Keep user input if reasonably valid, otherwise default
     }
 
     this.state = {
@@ -84,9 +94,6 @@ export default class Toolbar {
     this._registerGroups();
     this._attachEventListeners();
     this._render();
-
-    // REMOVED: _constrainToContainer() call.
-    // We now rely purely on your CSS for initial placement.
   }
 
   _createElements() {
@@ -97,8 +104,7 @@ export default class Toolbar {
 
     if (!container) throw new Error(`Toolbar: Container not found.`);
 
-    // 1. Force container to be a positioning context
-    // This is still necessary for dragging to work correctly later
+    // Force positioning context
     const containerStyle = window.getComputedStyle(container);
     if (containerStyle.position === "static" && container !== document.body) {
       container.style.position = "relative";
@@ -106,10 +112,6 @@ export default class Toolbar {
 
     this.element = document.createElement("div");
     this.element.className = this._generateClassName();
-
-    // REMOVED: All inline styles (top, left, visibility, position).
-    // Control these in your CSS class (.toolbar--bottom, etc).
-
     this.element.setAttribute("role", "toolbar");
 
     // Header & Drag Handle
@@ -122,6 +124,17 @@ export default class Toolbar {
         this.collapseButton = document.createElement("button");
         this.collapseButton.className = "toolbar__collapse-btn";
         this.collapseButton.innerHTML = this._getCollapseIcon();
+        // Add tooltip for collapse button
+        this.collapseButton.setAttribute(
+          "data-tooltip-text",
+          this.state.collapsed ? "Expand" : "Collapse"
+        );
+        this.collapseButton.setAttribute(
+          "data-tooltip-position",
+          this._determineTooltipPosition()
+        );
+        Tooltip.init(this.collapseButton);
+
         this.header.appendChild(this.collapseButton);
       }
 
@@ -154,7 +167,7 @@ export default class Toolbar {
     return classes.join(" ");
   }
 
-  // NOTE: This is empty now because we handle styles in _createElements
+  // NOTE: This is empty now because we handle styles in CSS
   _applyStyles() {}
 
   _registerTools() {
@@ -185,7 +198,6 @@ export default class Toolbar {
     e.preventDefault();
     this.state.isDragging = true;
 
-    // Capture the Current CSS Position and "Freeze" it into pixels
     const parent = this.element.offsetParent || document.body;
     const rect = this.element.getBoundingClientRect();
     const parentRect = parent.getBoundingClientRect();
@@ -193,12 +205,11 @@ export default class Toolbar {
     const currentLeft = rect.left - parentRect.left - parent.clientLeft;
     const currentTop = rect.top - parentRect.top - parent.clientTop;
 
-    // Now we apply inline styles ONLY when dragging starts
     this.element.style.position = "absolute";
     this.element.style.left = `${currentLeft}px`;
     this.element.style.top = `${currentTop}px`;
-    this.element.style.bottom = "auto"; // Clear bottom if CSS set it
-    this.element.style.right = "auto"; // Clear right if CSS set it
+    this.element.style.bottom = "auto";
+    this.element.style.right = "auto";
     this.element.style.transform = "none";
     this.element.style.margin = "0";
 
@@ -334,9 +345,15 @@ export default class Toolbar {
   }
 
   removeTool(toolId) {
+    const element = this.toolsContainer.querySelector(
+      `[data-tool-id="${toolId}"]`
+    );
+    if (element) Tooltip.remove(element); // Cleanup tooltip
+
     this.tools.delete(toolId);
     this._render();
   }
+
   getTool(toolId) {
     return this.tools.get(toolId);
   }
@@ -344,7 +361,22 @@ export default class Toolbar {
   updateTool(toolId, updates) {
     const tool = this.tools.get(toolId);
     if (!tool) return;
+
     Object.assign(tool, updates);
+
+    // If updating existing element in place (optimization)
+    const element = this.toolsContainer.querySelector(
+      `[data-tool-id="${toolId}"]`
+    );
+    if (element) {
+      if (updates.tooltip || updates.label) {
+        Tooltip.updateText(element, updates.tooltip || updates.label);
+      }
+      if (updates.shortcut) {
+        Tooltip.updateShortcut(element, updates.shortcut);
+      }
+    }
+
     this._render();
   }
 
@@ -377,10 +409,17 @@ export default class Toolbar {
   toggleCollapse() {
     this.state.collapsed = !this.state.collapsed;
     this.element.classList.toggle("toolbar--collapsed");
+
     if (this.collapseButton) {
       this.collapseButton.innerHTML = this._getCollapseIcon();
       this.collapseButton.setAttribute("aria-expanded", !this.state.collapsed);
+      // Update collapse button tooltip
+      Tooltip.updateText(
+        this.collapseButton,
+        this.state.collapsed ? "Expand" : "Collapse"
+      );
     }
+
     this.eventEmitter.emit("toolbar:collapse", {
       collapsed: this.state.collapsed,
     });
@@ -396,6 +435,11 @@ export default class Toolbar {
   }
 
   _render() {
+    // Cleanup old tooltips before re-rendering
+    this.toolsContainer
+      .querySelectorAll("[data-tool-id]")
+      .forEach((el) => Tooltip.remove(el));
+
     this.toolsContainer.innerHTML = "";
     const groupedTools = new Map();
     const ungroupedTools = [];
@@ -449,48 +493,81 @@ export default class Toolbar {
       separator.setAttribute("role", "separator");
       return separator;
     }
+
     const button = document.createElement("button");
     button.className = `toolbar__tool toolbar__tool--${tool.type}`;
     button.setAttribute("data-tool-id", tool.id);
     button.setAttribute("type", "button");
-    button.setAttribute("aria-label", tool.tooltip);
+    button.setAttribute("aria-label", tool.tooltip || tool.label);
+
+    // INTEGRATION: Modern Tooltip System
+    // We do NOT set 'title' anymore to avoid native tooltip conflict
+    button.setAttribute("data-tooltip-text", tool.tooltip || tool.label);
+
+    if (tool.shortcut) {
+      button.setAttribute("data-tooltip-shortcut", tool.shortcut);
+    }
+
+    // Smart Positioning based on toolbar orientation
     button.setAttribute(
-      "title",
-      tool.tooltip + (tool.shortcut ? ` (${tool.shortcut})` : "")
+      "data-tooltip-position",
+      this._determineTooltipPosition()
     );
+
     if (tool.customClass) button.classList.add(tool.customClass);
     if (tool.disabled) button.disabled = true;
+
     if (this.state.activeTool === tool.id) {
       button.classList.add("toolbar__tool--active");
       button.setAttribute("aria-pressed", "true");
     } else {
       button.setAttribute("aria-pressed", "false");
     }
+
     if (tool.icon) {
       const icon = document.createElement("span");
       icon.className = "toolbar__tool-icon";
       icon.innerHTML = Toolbar._resolveIcon(tool.icon);
       button.appendChild(icon);
     }
+
     if (this.options.showLabels && tool.label) {
       const label = document.createElement("span");
       label.className = "toolbar__tool-label";
       label.textContent = tool.label;
       button.appendChild(label);
     }
+
     if (tool.badge) {
       const badge = document.createElement("span");
       badge.className = "toolbar__tool-badge";
       badge.textContent = tool.badge;
       button.appendChild(badge);
     }
+
     if (tool.type === "dropdown") {
       const dropIcon = document.createElement("span");
       dropIcon.className = "toolbar__tool-dropdown-icon";
       dropIcon.innerHTML = Toolbar._resolveIcon("navigation.chevron_down");
       button.appendChild(dropIcon);
     }
+
+    // Initialize the tooltip logic for this button
+    Tooltip.init(button);
+
     return button;
+  }
+
+  /**
+   * Helper to determine best tooltip position based on toolbar location
+   */
+  _determineTooltipPosition() {
+    const pos = this.options.position;
+    if (pos.includes("bottom")) return "top";
+    if (pos.includes("top")) return "bottom";
+    if (pos.includes("left")) return "right";
+    if (pos.includes("right")) return "left";
+    return "auto"; // Default or floating
   }
 
   _getCollapseIcon() {
@@ -507,12 +584,19 @@ export default class Toolbar {
 
   destroy() {
     if (this.element && this.element.parentNode) {
+      // Cleanup tooltips inside
+      if (this.collapseButton) Tooltip.remove(this.collapseButton);
+      this.toolsContainer
+        .querySelectorAll("[data-tool-id]")
+        .forEach((el) => Tooltip.remove(el));
+
       this.element.parentNode.removeChild(this.element);
     }
     this.tools.clear();
     this.groups.clear();
     this.eventEmitter.removeAllListeners();
   }
+
   getElement() {
     return this.element;
   }

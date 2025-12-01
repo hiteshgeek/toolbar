@@ -221,6 +221,24 @@
 }
 
 // ============================================================================
+// GENERIC TRANSITION MIXIN
+// ============================================================================
+@mixin transition($properties...) {
+  $transition-list: ();
+
+  @each $property in $properties {
+    $transition-list: list.append(
+      $transition-list,
+      #{$property} 0.2s ease-in-out,
+      // using a safe default, or use var(--anim-fast) if defined
+      comma
+    );
+  }
+
+  transition: $transition-list;
+}
+
+// ============================================================================
 // TOOLTIP
 // ============================================================================
 @mixin tooltip($position: "top") {
