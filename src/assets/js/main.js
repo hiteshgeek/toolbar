@@ -168,7 +168,7 @@ if (typeof window !== "undefined") {
       },
     ],
     defaultToolSet: 0,
-    showSetIndicator: false,
+    showSetIndicator: true,
     onToolSetChange: (setIndex, currentSet) => {
       console.log(`Switched to tool set ${setIndex}:`, currentSet.name);
     },
