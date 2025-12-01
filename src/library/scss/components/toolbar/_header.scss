@@ -79,11 +79,12 @@
   @include flex-center;
   padding: 6px;
   color: var(--toolbar-text-secondary);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--toolbar-bg-tool);
   border-radius: map.get($toolbar-border, tool-radius);
   cursor: grab;
   user-select: none;
   transition: all map.get($toolbar-animation, duration, fast) ease;
+  @include elevation("xs");
 
   svg {
     @include icon-size(16px);
@@ -91,13 +92,14 @@
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--toolbar-bg-hover);
     color: var(--toolbar-text);
+    @include elevation("sm");
   }
 
   &:active {
     cursor: grabbing;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--toolbar-bg-hover);
   }
 
   // Dragging state

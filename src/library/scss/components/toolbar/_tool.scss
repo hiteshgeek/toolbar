@@ -22,16 +22,20 @@
   padding: map.get($toolbar-spacing, tool-padding);
   gap: 8px;
   color: var(--toolbar-text);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--toolbar-bg-tool);
   border-radius: 999px;
   font-size: map.get($toolbar-typography, font-size, default);
   font-weight: map.get($toolbar-typography, font-weight, medium);
   white-space: nowrap;
   user-select: none;
   transition: all map.get($toolbar-animation, duration, fast) ease;
+  box-shadow: var(--toolbar-shadow);
+  @include elevation("xs");
 
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--toolbar-bg-hover);
+    @include elevation("sm");
+    transform: scale(1.05);
   }
 
   &:active:not(:disabled) {
@@ -99,7 +103,7 @@
     color: var(--toolbar-text);
 
     &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.25);
+      background: var(--toolbar-bg-hover);
     }
   }
 }

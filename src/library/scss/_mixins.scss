@@ -74,6 +74,7 @@
 
   &:hover:not(:disabled) {
     background: var(--toolbar-bg-hover);
+    transform: scale(1.05);
   }
 
   &:active:not(:disabled) {
@@ -208,6 +209,7 @@
 
   --toolbar-bg: #{map.get($colors, bg)};
   --toolbar-bg-solid: #{map.get($colors, bg-solid)};
+  --toolbar-bg-tool: #{map.get($colors, bg-tool)};
   --toolbar-bg-hover: #{map.get($colors, bg-hover)};
   --toolbar-bg-active: #{map.get($colors, bg-active)};
   --toolbar-border: #{map.get($colors, border)};

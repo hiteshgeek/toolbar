@@ -7,8 +7,9 @@ if (typeof window !== "undefined") {
     container: "#app",
     // container: document.body,
     position: "bottom-center",
+    // theme: "light",
     theme: "dark",
-    draggable: true,
+    // draggable: true,
     tools: [
       {
         id: "undo",

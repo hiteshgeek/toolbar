@@ -11,10 +11,11 @@ $toolbar-colors: (
   dark:
     (
       bg: color-mix(in srgb, #1a1a1a 40%, transparent),
-      bg-solid: #1a1a1a,
-      bg-hover: rgba(255, 255, 255, 0.15),
-      bg-active: rgba(255, 255, 255, 0.25),
-      border: rgba(255, 255, 255, 0.15),
+      bg-solid: color-mix(in srgb, #1a1a1a 95%, transparent),
+      bg-hover: rgba(255, 255, 255, 0.35),
+      bg-tool: rgba(255, 255, 255, 0.12),
+      bg-active: rgba(255, 255, 255, 0.2),
+      border: rgba(255, 255, 255, 0.75),
       text: #ffffff,
       text-secondary: rgba(255, 255, 255, 0.7),
       icon: rgba(255, 255, 255, 0.9),
@@ -26,10 +27,11 @@ $toolbar-colors: (
   light:
     (
       bg: color-mix(in srgb, #ffffff 40%, transparent),
-      bg-solid: #ffffff,
-      bg-hover: rgba(0, 0, 0, 0.05),
+      bg-solid: color-mix(in srgb, #ffffff 95%, transparent),
+      bg-hover: rgba(255, 255, 255, 0.95),
+      bg-tool: rgba(255, 255, 255, 0.5),
       bg-active: rgba(0, 0, 0, 0.1),
-      border: rgba(0, 0, 0, 0.5),
+      border: rgba(0, 0, 0, 0.75),
       text: #333333,
       text-secondary: rgba(0, 0, 0, 0.6),
       icon: rgba(0, 0, 0, 0.8),
@@ -134,6 +136,7 @@ $toolbar-animation: (
 // SHADOWS & EFFECTS
 // ============================================================================
 $toolbar-shadows: (
+  xs: 0 0 5px rgba(0, 0, 0, 0.15),
   sm: 0 0 10px rgba(0, 0, 0, 0.15),
   1sm: 0 2px 8px rgba(0, 0, 0, 0.08),
   md: 0 4px 12px rgba(0, 0, 0, 0.15),
