@@ -336,32 +336,55 @@ export default class Toolbar {
     e.preventDefault();
     this.state.isDragging = true;
 
-    // NEW: Show overlay immediately on drag start
-    this._showOverlay();
-
     const parent = this.element.offsetParent || document.body;
     const rect = this.element.getBoundingClientRect();
     const parentRect = parent.getBoundingClientRect();
 
-    const currentLeft = rect.left - parentRect.left - parent.clientLeft;
-    const currentTop = rect.top - parentRect.top - parent.clientTop;
+    // Create and show overlay
+    this._showOverlay();
+
+    // Add compact drag class to make toolbar circular
+    this.element.classList.add("toolbar--dragging-compact");
+
+    // Fixed compact dimensions (60px x 60px)
+    const compactWidth = 60;
+    const compactHeight = 60;
+
+    // Calculate mouse position relative to toolbar center
+    const mouseRelativeX = e.clientX - rect.left - rect.width / 2;
+    const mouseRelativeY = e.clientY - rect.top - rect.height / 2;
+
+    // Store the offset from mouse to toolbar center
+    this.state.dragOffset = {
+      x: mouseRelativeX,
+      y: mouseRelativeY,
+    };
+
+    // Position toolbar so that its center follows the mouse
+    const centerX = e.clientX - parentRect.left - parent.clientLeft;
+    const centerY = e.clientY - parentRect.top - parent.clientTop;
+
+    const newLeft = centerX - compactWidth / 2;
+    const newTop = centerY - compactHeight / 2;
 
     this.element.style.position = "absolute";
-    this.element.style.left = `${currentLeft}px`;
-    this.element.style.top = `${currentTop}px`;
+    this.element.style.left = `${newLeft}px`;
+    this.element.style.top = `${newTop}px`;
     this.element.style.bottom = "auto";
     this.element.style.right = "auto";
     this.element.style.transform = "none";
     this.element.style.margin = "0";
 
     this.state.dragStart = { mouseX: e.clientX, mouseY: e.clientY };
-    this.state.initialPos = { left: currentLeft, top: currentTop };
+    this.state.initialPos = { left: newLeft, top: newTop };
+    this.state.compactSize = { width: compactWidth, height: compactHeight };
 
+    // Calculate bounds based on compact dimensions
     this.state.bounds = {
       minX: 0,
       minY: 0,
-      maxX: parent.clientWidth - this.element.offsetWidth,
-      maxY: parent.clientHeight - this.element.offsetHeight,
+      maxX: parent.clientWidth - compactWidth,
+      maxY: parent.clientHeight - compactHeight,
     };
 
     // Show snap hints if snap mode is enabled
@@ -373,8 +396,17 @@ export default class Toolbar {
     const onMouseUp = () => {
       this.state.isDragging = false;
 
-      // NEW: Hide overlay on drag end
+      // Cancel any pending animation frame
+      if (this._dragRaf) {
+        cancelAnimationFrame(this._dragRaf);
+        this._dragRaf = null;
+      }
+
+      // Hide overlay
       this._hideOverlay();
+
+      // Remove compact drag class to restore normal appearance
+      this.element.classList.remove("toolbar--dragging-compact");
 
       // Hide snap hints
       if (this.options.snapToPosition) {
@@ -395,57 +427,55 @@ export default class Toolbar {
   _onDragMove(e) {
     if (!this.state.isDragging) return;
 
-    const deltaX = e.clientX - this.state.dragStart.mouseX;
-    const deltaY = e.clientY - this.state.dragStart.mouseY;
-
-    let newLeft = this.state.initialPos.left + deltaX;
-    let newTop = this.state.initialPos.top + deltaY;
-
-    newLeft = Math.max(
-      this.state.bounds.minX,
-      Math.min(newLeft, this.state.bounds.maxX)
-    );
-    newTop = Math.max(
-      this.state.bounds.minY,
-      Math.min(newTop, this.state.bounds.maxY)
-    );
-
-    this.element.style.left = `${newLeft}px`;
-    this.element.style.top = `${newTop}px`;
-    this.state.position = { x: newLeft, y: newTop };
-
-    // Highlight nearest snap position if snap mode is enabled
-    if (this.options.snapToPosition) {
-      this._highlightNearestSnapHint();
+    // Use requestAnimationFrame for smoother dragging
+    if (this._dragRaf) {
+      cancelAnimationFrame(this._dragRaf);
     }
+
+    this._dragRaf = requestAnimationFrame(() => {
+      const deltaX = e.clientX - this.state.dragStart.mouseX;
+      const deltaY = e.clientY - this.state.dragStart.mouseY;
+
+      let newLeft = this.state.initialPos.left + deltaX;
+      let newTop = this.state.initialPos.top + deltaY;
+
+      newLeft = Math.max(
+        this.state.bounds.minX,
+        Math.min(newLeft, this.state.bounds.maxX)
+      );
+      newTop = Math.max(
+        this.state.bounds.minY,
+        Math.min(newTop, this.state.bounds.maxY)
+      );
+
+      this.element.style.left = `${newLeft}px`;
+      this.element.style.top = `${newTop}px`;
+      this.state.position = { x: newLeft, y: newTop };
+
+      // Highlight nearest snap position if snap mode is enabled
+      if (this.options.snapToPosition) {
+        this._highlightNearestSnapHint();
+      }
+    });
   }
 
   /**
-   * Create and append the drag overlay
-   * @private
+   * Create and show overlay
    */
   _showOverlay() {
-    // Prevent creating multiple overlays
-    if (this.overlay) return;
+    if (this.overlay) return; // Already exists
 
     this.overlay = document.createElement("div");
     this.overlay.className = "toolbar--overlay";
-
-    // Append to the same container the toolbar lives in
-    if (this.element && this.element.parentNode) {
-      this.element.parentNode.appendChild(this.overlay);
-    }
+    document.body.appendChild(this.overlay);
   }
 
   /**
-   * Remove the drag overlay
-   * @private
+   * Hide and remove overlay
    */
   _hideOverlay() {
-    if (this.overlay) {
-      if (this.overlay.parentNode) {
-        this.overlay.parentNode.removeChild(this.overlay);
-      }
+    if (this.overlay && this.overlay.parentNode) {
+      this.overlay.parentNode.removeChild(this.overlay);
       this.overlay = null;
     }
   }
