@@ -167,7 +167,6 @@
 
   // Compact mode while dragging - circular with only drag handle visible
   &--dragging-compact {
-    cursor: grabbing !important;
     opacity: 0.95;
     @include elevation("lg");
     border-radius: 50% !important;
@@ -177,7 +176,8 @@
     // Remove all transitions during drag for smooth performance
     transition: none !important;
     will-change: transform;
-    pointer-events: none;
+    // Solid background like hover state
+    background: var(--toolbar-bg-solid) !important;
 
     // Hide all tools during drag
     .toolbar__tools {
@@ -197,7 +197,6 @@
       width: 100%;
       height: 100%;
       padding: 0;
-      pointer-events: none;
     }
 
     // Hide collapse button during drag
@@ -212,14 +211,13 @@
       justify-content: center;
       width: 100%;
       height: 100%;
-      cursor: grabbing !important;
       opacity: 1;
-      pointer-events: none;
 
       svg {
         width: 24px;
         height: 24px;
         fill: var(--toolbar-icon);
+        pointer-events: none;
       }
     }
   }
@@ -242,12 +240,13 @@
     .toolbar__tools {
       gap: 6px;
 
-      &:not(.with_label):not(.label_only) .toolbar__tool,
-      &.icon_only .toolbar__tool {
-        width: 32px;
-        min-width: 32px;
-        padding: 0;
-        border-radius: 50%;
+      &:not(.with_label):not(.label_only) .toolbar__tool:not(.toolbar__tool--force-label):not(.toolbar__tool--force-both),
+      &.icon_only .toolbar__tool:not(.toolbar__tool--force-label):not(.toolbar__tool--force-both) {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
       }
 
       &.with_label .toolbar__tool {
@@ -316,12 +315,13 @@
     .toolbar__tools {
       gap: 16px;
 
-      &:not(.with_label):not(.label_only) .toolbar__tool,
-      &.icon_only .toolbar__tool {
-        width: 52px;
-        min-width: 52px;
-        padding: 0;
-        border-radius: 50%;
+      &:not(.with_label):not(.label_only) .toolbar__tool:not(.toolbar__tool--force-label):not(.toolbar__tool--force-both),
+      &.icon_only .toolbar__tool:not(.toolbar__tool--force-label):not(.toolbar__tool--force-both) {
+        width: 52px !important;
+        height: 52px !important;
+        min-width: 52px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
       }
 
       &.with_label .toolbar__tool {
