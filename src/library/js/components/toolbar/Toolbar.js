@@ -7,6 +7,7 @@ import { ToolbarEventEmitter } from "./ToolbarEmitter.js";
 import { icons } from "../../utils/icons.js";
 import Tooltip from "../tooltip/Tooltip.js"; // Import the Tooltip class
 import { BuiltInToolsManager } from "./builtins/index.js"; // Import BuiltInToolsManager
+import StorageManager from "../../utils/StorageManager.js"; // Import StorageManager
 
 export default class Toolbar {
   static _resolveIcon(iconPath) {
@@ -50,6 +51,14 @@ export default class Toolbar {
     // Define valid orientations
     this.validOrientations = ["horizontal", "vertical"];
 
+    // Initialize StorageManager for persisting settings
+    const appName = options.appName || "toolbar";
+    const storageKey = options.storageKey || "settings";
+    this.storageManager = new StorageManager(appName, storageKey);
+
+    // Load saved settings from localStorage using StorageManager
+    const savedSettings = this.storageManager.load();
+
     // Validate and set position (default to bottom-center if invalid)
     let position = options.position || "bottom-center";
     if (!this.validPositions.includes(position)) {
@@ -61,8 +70,8 @@ export default class Toolbar {
       position = "bottom-center";
     }
 
-    // Validate and set size (default to medium if invalid)
-    let size = options.size || "medium";
+    // Validate and set size (prioritize: saved settings > explicit options > default)
+    let size = savedSettings.size || options.size || "medium";
     if (!this.validSizes.includes(size)) {
       console.warn(
         `Invalid size: ${size}. Defaulting to medium. Valid sizes are: ${this.validSizes.join(
@@ -72,10 +81,12 @@ export default class Toolbar {
       size = "medium";
     }
 
-    // Validate and set displayMode (default to "both" if invalid)
+    // Validate and set displayMode (prioritize: saved settings > explicit options > default)
     // Support legacy showLabels option for backwards compatibility
     let displayMode =
-      options.displayMode !== undefined
+      savedSettings.displayMode !== undefined
+        ? savedSettings.displayMode
+        : options.displayMode !== undefined
         ? options.displayMode
         : options.showLabels !== undefined
         ? options.showLabels
@@ -110,7 +121,7 @@ export default class Toolbar {
       container: options.container || document.body,
       position: position,
       orientation: orientation,
-      theme: options.theme || "system", // Default to system preference
+      theme: savedSettings.theme || options.theme || "system", // Prioritize saved theme
       size: size, // Toolbar size: small, medium, large
       draggable: options.draggable !== undefined ? options.draggable : false,
       snapToPosition:
@@ -130,12 +141,7 @@ export default class Toolbar {
         options.showSetIndicator !== undefined
           ? options.showSetIndicator
           : true,
-      // Built-in tools configuration
-      builtInTools: {
-        theme: options.builtInTools?.theme !== undefined ? options.builtInTools.theme : true,
-        displayMode: options.builtInTools?.displayMode !== undefined ? options.builtInTools.displayMode : true,
-        size: options.builtInTools?.size !== undefined ? options.builtInTools.size : true,
-      },
+      // Built-in tools configuration (used when adding built-in tools with { builtIn: "theme" })
       builtInToolsConfig: {
         theme: options.builtInToolsConfig?.theme || {},
         displayMode: options.builtInToolsConfig?.displayMode || {},
@@ -192,8 +198,7 @@ export default class Toolbar {
 
   _init() {
     this._createElements();
-    this._registerBuiltInTools(); // Register built-in tools first
-    this._registerTools();
+    this._registerTools(); // Register tools (includes built-in tools via { builtIn: "..." })
     this._registerGroups();
     this._addNavigationButton(); // Add navigation button for initial set
     this._attachEventListeners();
@@ -210,7 +215,19 @@ export default class Toolbar {
       const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
       this.systemThemeListener = (e) => {
+        // Double-check that we're still in system mode before applying changes
+        if (this.options.theme !== "system") {
+          console.warn(
+            "[Toolbar] System theme change detected but theme is not set to 'system'. Ignoring."
+          );
+          return;
+        }
+
         const detectedTheme = e.matches ? "dark" : "light";
+
+        // Apply the new theme to the document and toolbar
+        this._applyTheme("system");
+
         this.eventEmitter.emit("theme:system-change", {
           theme: detectedTheme,
           systemPreference: true,
@@ -300,6 +317,16 @@ export default class Toolbar {
 
     this.toolsContainer = document.createElement("div");
     this.toolsContainer.className = "toolbar__tools";
+
+    // Apply initial display mode classes
+    if (this.options.displayMode === "both") {
+      this.toolsContainer.classList.add("with_label");
+    } else if (this.options.displayMode === "label") {
+      this.toolsContainer.classList.add("label_only");
+    } else if (this.options.displayMode === "icon") {
+      this.toolsContainer.classList.add("icon_only");
+    }
+
     this.element.appendChild(this.toolsContainer);
 
     container.appendChild(this.element);
@@ -325,22 +352,26 @@ export default class Toolbar {
 
   /**
    * Register built-in tools (theme switcher, display mode switcher, size changer)
-   * Now handled by BuiltInToolsManager
+   * @deprecated No longer auto-called. Add built-in tools manually using { builtIn: "theme" } in tools array.
+   * This method is kept for backward compatibility if someone calls it programmatically.
    */
   _registerBuiltInTools() {
     this.builtInToolsManager.initialize();
   }
 
   _registerTools() {
-    // If toolSets are defined, use the current tool set
+    // Register persistent tools from main tools array (if any)
+    // These tools appear BEFORE tool set tools and persist across all sets
+    if (this.options.tools && this.options.tools.length > 0) {
+      this.options.tools.forEach((tool) => this.addTool(tool));
+    }
+
+    // If toolSets are defined, add tools from the current tool set
     if (this.options.toolSets && this.options.toolSets.length > 0) {
       const currentSet = this.options.toolSets[this.state.currentToolSet];
       if (currentSet && currentSet.tools) {
         currentSet.tools.forEach((tool) => this.addTool(tool));
       }
-    } else {
-      // Otherwise use the regular tools array
-      this.options.tools.forEach((tool) => this.addTool(tool));
     }
   }
 
@@ -702,6 +733,9 @@ export default class Toolbar {
     this.element.style.right = "";
     this.element.style.bottom = "";
     this.element.style.transform = "";
+
+    // Update tooltip positions based on new toolbar position
+    this._updateTooltipPositions();
   }
 
   _onToolClick(e) {
@@ -754,6 +788,11 @@ export default class Toolbar {
   }
 
   addTool(tool) {
+    // Handle built-in tool placeholder syntax: { builtIn: "theme" }
+    if (tool.builtIn) {
+      return this.addBuiltInTool(tool.builtIn, tool.config || {});
+    }
+
     const toolConfig = {
       id: tool.id || `tool-${Date.now()}-${Math.random()}`,
       type: tool.type || "button",
@@ -772,6 +811,16 @@ export default class Toolbar {
     };
     this.tools.set(toolConfig.id, toolConfig);
     return toolConfig.id;
+  }
+
+  /**
+   * Manually add a specific built-in tool
+   * @param {string} toolKey - "theme", "displayMode", or "size"
+   * @param {Object} config - Configuration for the built-in tool
+   * @returns {string|null} Tool ID or null if failed
+   */
+  addBuiltInTool(toolKey, config = {}) {
+    return this.builtInToolsManager.registerTool(toolKey, config);
   }
 
   addGroup(group) {
@@ -948,6 +997,9 @@ export default class Toolbar {
     if (this.options.onThemeChange) {
       this.options.onThemeChange(theme, false);
     }
+
+    // Save theme to localStorage
+    this._saveSettings();
   }
 
   /**
@@ -999,6 +1051,9 @@ export default class Toolbar {
     if (this.options.onSizeChange) {
       this.options.onSizeChange(size);
     }
+
+    // Save size to localStorage
+    this._saveSettings();
   }
 
   /**
@@ -1164,6 +1219,9 @@ export default class Toolbar {
     this.state.activeTool = currentActiveTool;
 
     this.eventEmitter.emit("displayMode:change", { displayMode: mode });
+
+    // Save display mode to localStorage
+    this._saveSettings();
   }
 
   /**
@@ -1231,10 +1289,7 @@ export default class Toolbar {
     this.tools.clear();
     this.groups.clear();
 
-    // Re-register built-in tools first (so they stay visible across tool sets)
-    this._registerBuiltInTools();
-
-    // Re-register tools and groups from new set
+    // Re-register tools and groups from new set (includes built-in tools)
     this._registerTools();
     this._registerGroups();
 
@@ -1570,24 +1625,27 @@ export default class Toolbar {
     const pos = this.options.position;
     const orientation = this.options.orientation;
 
-    // For vertical toolbars, prefer left/right positioning
+    // For vertical toolbars, ALWAYS use left/right positioning
     if (orientation === "vertical") {
-      if (pos.includes("left")) return "right";
-      if (pos.includes("right")) return "left";
-      // If toolbar is centered or floating, use auto with vertical preference
-      return "auto-vertical";
+      // Determine which side has more space
+      if (pos.includes("left")) return "right"; // Toolbar on left, tooltip on right
+      if (pos.includes("right")) return "left"; // Toolbar on right, tooltip on left
+      // For center position, prefer right side
+      return "right";
     }
 
-    // For horizontal toolbars, prefer top/bottom positioning
-    if (pos.includes("bottom")) return "top";
-    if (pos.includes("top")) return "bottom";
-    if (pos.includes("left")) return "right";
-    if (pos.includes("right")) return "left";
-    return "auto"; // Default or floating
+    // For horizontal toolbars, ALWAYS use top/bottom positioning
+    // Determine which side has more space
+    if (pos.includes("bottom")) return "top"; // Toolbar at bottom, tooltip on top
+    if (pos.includes("top")) return "bottom"; // Toolbar at top, tooltip on bottom
+    // For center or side positions with horizontal orientation
+    if (pos.includes("center")) return "top"; // Default to top for center
+    // For left/right positions with horizontal orientation, still prefer top/bottom
+    return "top";
   }
 
   /**
-   * Update tooltip positions for all elements when orientation changes
+   * Update tooltip positions for all elements when orientation or position changes
    * @private
    */
   _updateTooltipPositions() {
@@ -1596,12 +1654,51 @@ export default class Toolbar {
     // Update all tool buttons
     const toolButtons = this.element.querySelectorAll("[data-tooltip-text]");
     toolButtons.forEach((button) => {
+      // Update data attribute
       button.setAttribute("data-tooltip-position", newPosition);
+
+      // Remove old position classes from CSS-based tooltips
+      button.classList.remove(
+        "tooltip-top",
+        "tooltip-bottom",
+        "tooltip-left",
+        "tooltip-right"
+      );
+
+      // Add new position class if it's a CSS-based tooltip
+      if (button.classList.contains("has-tooltip")) {
+        button.classList.add(`tooltip-${newPosition}`);
+      }
+
+      // Update wrapper-based tooltips (with shortcuts)
+      const wrapper = button.querySelector(".tooltip-wrapper");
+      if (wrapper) {
+        wrapper.classList.remove(
+          "tooltip-top",
+          "tooltip-bottom",
+          "tooltip-left",
+          "tooltip-right"
+        );
+        // Don't add the class here - it will be added when shown
+      }
     });
 
     // Update collapse button if it exists
     if (this.collapseButton) {
       this.collapseButton.setAttribute("data-tooltip-position", newPosition);
+
+      // Remove old position classes
+      this.collapseButton.classList.remove(
+        "tooltip-top",
+        "tooltip-bottom",
+        "tooltip-left",
+        "tooltip-right"
+      );
+
+      // Add new position class
+      if (this.collapseButton.classList.contains("has-tooltip")) {
+        this.collapseButton.classList.add(`tooltip-${newPosition}`);
+      }
     }
   }
 
@@ -1615,6 +1712,19 @@ export default class Toolbar {
         ? Toolbar._resolveIcon("navigation.chevron_right")
         : Toolbar._resolveIcon("navigation.chevron_left");
     }
+  }
+
+  /**
+   * Save current settings to localStorage using StorageManager
+   * @private
+   */
+  _saveSettings() {
+    const settings = {
+      theme: this.options.theme,
+      size: this.options.size,
+      displayMode: this.options.displayMode,
+    };
+    this.storageManager.save(settings);
   }
 
   destroy() {

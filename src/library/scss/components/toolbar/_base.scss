@@ -30,9 +30,9 @@
   align-items: center;
 
   // Hover effect - solid background
-  &:hover {
-    background: var(--toolbar-bg-solid);
-  }
+  // &:hover {
+  //   background: var(--toolbar-bg-solid);
+  // }
 
   // ============================================================================
   // THEME VARIANTS - Static Modes
@@ -273,8 +273,14 @@
     .toolbar__tools {
       gap: 6px;
 
-      &:not(.with_label):not(.label_only) .toolbar__tool:not(.toolbar__tool--force-label):not(.toolbar__tool--force-both),
-      &.icon_only .toolbar__tool:not(.toolbar__tool--force-label):not(.toolbar__tool--force-both) {
+      &:not(.with_label):not(.label_only)
+        .toolbar__tool:not(.toolbar__tool--force-label):not(
+          .toolbar__tool--force-both
+        ),
+      &.icon_only
+        .toolbar__tool:not(.toolbar__tool--force-label):not(
+          .toolbar__tool--force-both
+        ) {
         width: 32px !important;
         height: 32px !important;
         min-width: 32px !important;
@@ -288,6 +294,16 @@
 
       &.label_only .toolbar__tool {
         padding: 0 12px;
+      }
+
+      // Force icon-only tools to remain circular even in label modes
+      &.with_label .toolbar__tool--force-icon,
+      &.label_only .toolbar__tool--force-icon {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
       }
     }
 
@@ -329,6 +345,16 @@
       &.label_only .toolbar__tool {
         padding: 0 16px;
       }
+
+      // Force icon-only tools to remain circular even in label modes
+      &.with_label .toolbar__tool--force-icon,
+      &.label_only .toolbar__tool--force-icon {
+        width: map.get($toolbar-sizes, tool, default) !important;
+        height: map.get($toolbar-sizes, tool, default) !important;
+        min-width: map.get($toolbar-sizes, tool, default) !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+      }
     }
 
     .toolbar__tool {
@@ -348,8 +374,14 @@
     .toolbar__tools {
       gap: 16px;
 
-      &:not(.with_label):not(.label_only) .toolbar__tool:not(.toolbar__tool--force-label):not(.toolbar__tool--force-both),
-      &.icon_only .toolbar__tool:not(.toolbar__tool--force-label):not(.toolbar__tool--force-both) {
+      &:not(.with_label):not(.label_only)
+        .toolbar__tool:not(.toolbar__tool--force-label):not(
+          .toolbar__tool--force-both
+        ),
+      &.icon_only
+        .toolbar__tool:not(.toolbar__tool--force-label):not(
+          .toolbar__tool--force-both
+        ) {
         width: 52px !important;
         height: 52px !important;
         min-width: 52px !important;
@@ -363,6 +395,16 @@
 
       &.label_only .toolbar__tool {
         padding: 0 20px;
+      }
+
+      // Force icon-only tools to remain circular even in label modes
+      &.with_label .toolbar__tool--force-icon,
+      &.label_only .toolbar__tool--force-icon {
+        width: 52px !important;
+        height: 52px !important;
+        min-width: 52px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
       }
     }
 

@@ -7,31 +7,34 @@
 @use "../../mixins" as *;
 
 // ============================================================================
-// LIGHT THEME (Default)
+// LIGHT THEME (Default) - Glassmorphic Style
 // ============================================================================
 :root,
 [data-theme="light"] {
-  --toolbar-bg: rgba(255, 255, 255, 0.8);
-  --toolbar-bg-solid: #ffffff;
-  --toolbar-bg-tool: rgba(0, 0, 0, 0.05);
-  --toolbar-bg-hover: rgba(0, 0, 0, 0.1);
-  --toolbar-text: #1f2937;
-  --toolbar-icon: #4b5563;
-  --toolbar-border: rgba(0, 0, 0, 0.1);
-  --toolbar-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --toolbar-bg: color-mix(in srgb, #ffffff 40%, transparent);
+  --toolbar-bg-solid: color-mix(in srgb, #ffffff 95%, transparent);
+  --toolbar-bg-tool: rgba(255, 255, 255, 0.5);
+  --toolbar-bg-hover: rgba(255, 255, 255, 0.95);
+  --toolbar-bg-active: rgba(0, 0, 0, 0.1);
+  --toolbar-text: #333333;
+  --toolbar-text-secondary: rgba(0, 0, 0, 0.6);
+  --toolbar-icon: rgba(0, 0, 0, 0.8);
+  --toolbar-border: rgba(0, 0, 0, 0.75);
+  --toolbar-shadow: rgba(0, 0, 0, 0.15);
   --toolbar-separator: rgba(0, 0, 0, 0.1);
+  --toolbar-svg-fill: #000;
 
-  // Background colors
+  // Background colors for body
   --bg-primary: #ffffff;
   --bg-secondary: #f3f4f6;
   --bg-tertiary: #e5e7eb;
 
-  // Text colors
+  // Text colors for body
   --text-primary: #1f2937;
   --text-secondary: #6b7280;
   --text-tertiary: #9ca3af;
 
-  // Border colors
+  // Border colors for body
   --border-primary: #e5e7eb;
   --border-secondary: #d1d5db;
 
@@ -39,30 +42,33 @@
 }
 
 // ============================================================================
-// DARK THEME
+// DARK THEME - Glassmorphic Style
 // ============================================================================
 [data-theme="dark"] {
-  --toolbar-bg: rgba(30, 30, 30, 0.8);
-  --toolbar-bg-solid: #1e1e1e;
-  --toolbar-bg-tool: rgba(255, 255, 255, 0.05);
-  --toolbar-bg-hover: rgba(255, 255, 255, 0.1);
-  --toolbar-text: #e5e7eb;
-  --toolbar-icon: #9ca3af;
-  --toolbar-border: rgba(255, 255, 255, 0.1);
-  --toolbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --toolbar-bg: color-mix(in srgb, #1a1a1a 40%, transparent);
+  --toolbar-bg-solid: color-mix(in srgb, #1a1a1a 95%, transparent);
+  --toolbar-bg-tool: rgba(0, 0, 0, 0.3);
+  --toolbar-bg-hover: rgba(0, 0, 0, 0.9);
+  --toolbar-bg-active: rgba(255, 255, 255, 0.2);
+  --toolbar-text: #ffffff;
+  --toolbar-text-secondary: rgba(255, 255, 255, 0.7);
+  --toolbar-icon: rgba(255, 255, 255, 0.9);
+  --toolbar-border: rgba(255, 255, 255, 0.75);
+  --toolbar-shadow: rgba(0, 0, 0, 0.5);
   --toolbar-separator: rgba(255, 255, 255, 0.1);
+  --toolbar-svg-fill: #fff;
 
-  // Background colors
+  // Background colors for body
   --bg-primary: #1f2937;
   --bg-secondary: #111827;
   --bg-tertiary: #0f172a;
 
-  // Text colors
+  // Text colors for body
   --text-primary: #f9fafb;
   --text-secondary: #d1d5db;
   --text-tertiary: #9ca3af;
 
-  // Border colors
+  // Border colors for body
   --border-primary: #374151;
   --border-secondary: #4b5563;
 

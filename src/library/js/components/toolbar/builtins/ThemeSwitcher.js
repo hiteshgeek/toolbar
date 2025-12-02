@@ -100,6 +100,14 @@ export default class ThemeSwitcher extends BaseBuiltInTool {
       this.updateVisuals();
     });
 
+    // Listen for system theme changes (when in system mode)
+    this.toolbar.on("theme:system-change", () => {
+      // Only update visuals if we're in system mode
+      if (this.toolbar.options.theme === "system") {
+        this.updateVisuals();
+      }
+    });
+
     return toolId;
   }
 }

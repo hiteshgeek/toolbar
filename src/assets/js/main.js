@@ -46,6 +46,35 @@ if (typeof window !== "undefined") {
   // INITIALIZATION
   // ============================================================================
 
+  /*
+   * TOOLBAR STRUCTURE WITH TOOL SETS
+   *
+   * When using toolSets, you have THREE places to add tools:
+   *
+   * 1. PERSISTENT TOOLS (tools array) - Appear BEFORE tool sets
+   *    - These tools stay visible across ALL tool sets
+   *    - Perfect for: global actions, built-in tools, always-visible buttons
+   *    - Example: Theme switcher, save button, help button
+   *
+   * 2. TOOL SET TOOLS (toolSets[].tools) - Change when switching sets
+   *    - These tools are specific to each tool set
+   *    - Different tool sets can have completely different tools
+   *    - Example: Editing tools in set 1, view tools in set 2
+   *
+   * 3. AFTER TOOL SETS - Programmatically add after initialization
+   *    - Use toolbar.addTool() after creating the toolbar
+   *    - These appear AFTER the current tool set
+   *
+   * BUILT-IN TOOLS can be placed in ANY of these locations:
+   * - { builtIn: "theme" }
+   * - { builtIn: "displayMode" }
+   * - { builtIn: "size" }
+   *
+   * Below is an example showing:
+   * - Theme in persistent tools (visible in all sets)
+   * - Size & DisplayMode in tool set tools (specific to each set)
+   */
+
   const basicToolbar = new Toolbar({
     container: "#app",
     size: "medium", //small, medium, large
@@ -55,38 +84,35 @@ if (typeof window !== "undefined") {
     displayMode: "icon", // "icon", "label", or "both"
     draggable: true,
     snapToPosition: true,
-    allowedSnapPositions: ["bottom-left", "bottom-center", "bottom-right"],
-    // Built-in tools configuration (enabled by default)
-    builtInTools: {
-      theme: true, // Enable theme switcher
-      displayMode: true, // Enable display mode switcher
-      size: true, // Enable size changer
-    },
-    // Optional: Customize built-in tools
+    allowedSnapPositions: [
+      "top-left",
+      "top-center",
+      "top-right",
+      "bottom-left",
+      "bottom-center",
+      "bottom-right",
+    ],
+
+    // Optional: Customize built-in tools appearance
     builtInToolsConfig: {
       theme: {
-        // id: "custom-theme-switcher", // Optional custom ID
-        // tooltip: "Change theme", // Optional custom tooltip
-        // forceDisplayMode: "icon", // Optional force display mode
-        // Custom icons (optional)
         iconLight: "utils.sun",
         iconDark: "utils.moon",
         iconSystem: "utils.monitor",
-        // Custom labels (optional)
-        labelLight: "Light",
-        labelDark: "Dark",
-        labelSystem: "System",
-      },
-      displayMode: {
-        // Custom configuration for display mode switcher (optional)
-      },
-      size: {
-        // Custom configuration for size changer (optional)
       },
     },
+
     // Available themes (default: ["light", "dark", "system"])
     themes: ["light", "dark", "system"],
-    // Define multiple tool sets
+
+    // PERSISTENT TOOLS: Tools that appear BEFORE tool sets
+    // These tools stay visible across ALL tool sets (they don't change when switching sets)
+    tools: [
+      { builtIn: "theme" }, // Theme switcher persists across all sets
+      { type: "separator" },
+    ],
+
+    // TOOL SETS: Tools that change when you switch sets
     toolSets: [
       {
         name: "Editing Tools",
@@ -138,6 +164,11 @@ if (typeof window !== "undefined") {
             shortcut: "Ctrl+V",
             action: () => console.log("Paste"),
           },
+
+          // MANUAL PLACEMENT: Add size and displayMode at the END
+          { type: "separator" },
+          { builtIn: "size" },
+          { builtIn: "displayMode" },
         ],
       },
       {
@@ -149,49 +180,11 @@ if (typeof window !== "undefined") {
           targetSet: "next", // Go to specific set index
         },
         tools: [
-          // NOTE: Theme, Size, and Display Mode switchers are now built-in tools!
-          // They are automatically added by the toolbar when builtInTools options are enabled.
-          // The code below shows how they were manually implemented before.
-          // You can still customize them using builtInToolsConfig option (see initialization above).
-
-          /* MANUAL IMPLEMENTATION (No longer needed - kept for reference)
-          {
-            id: "theme-toggle",
-            label: "Theme",
-            icon: "utils.monitor",
-            tooltip: "Theme: System",
-            customClass: "toolbar__tool--active",
-            action: () => {
-              const currentTheme = basicToolbar.getTheme();
-              const currentIndex = THEME_CONFIG.order.indexOf(currentTheme);
-              const nextIndex = (currentIndex + 1) % THEME_CONFIG.order.length;
-              basicToolbar.setTheme(THEME_CONFIG.order[nextIndex]);
-            },
-          },
+          // Note: Theme is in persistent tools, so it's already visible
+          // Let's add size and displayMode for this tool set
+          { builtIn: "size" },
+          { builtIn: "displayMode" },
           { type: "separator" },
-          {
-            id: "size-toggle",
-            label: "Size",
-            icon: "edit.plus",
-            tooltip: "Size: Medium",
-            customClass: "toolbar__tool--active",
-            action: () => {
-              basicToolbar.nextSize();
-            },
-          },
-          { type: "separator" },
-          {
-            id: "toggle-display-mode",
-            label: "Display",
-            icon: "utils.menu",
-            tooltip: "Display: Icons Only",
-            customClass: "toolbar__tool--active",
-            action: () => {
-              basicToolbar.nextDisplayMode();
-            },
-          },
-          { type: "separator" },
-          */
 
           // Other example tools
           {
@@ -212,7 +205,7 @@ if (typeof window !== "undefined") {
           {
             id: "toggle-orientation",
             label: "Toggle Layout",
-            icon: "utils.columns",
+            icon: "utils.vertical",
             tooltip: "Toggle Horizontal/Vertical",
             action: () => {
               basicToolbar.toggleOrientation();
@@ -269,6 +262,12 @@ if (typeof window !== "undefined") {
             tooltip: "Info",
             action: () => console.log("Info"),
           },
+
+          // Note: Theme is already in persistent tools
+          // Add size and displayMode at the END for this set
+          { type: "separator" },
+          { builtIn: "size" },
+          { builtIn: "displayMode" },
         ],
       },
     ],
@@ -306,6 +305,111 @@ if (typeof window !== "undefined") {
   });
 
   window.basicToolbar = basicToolbar;
+
+  // ============================================================================
+  // ACCESSING BUILT-IN TOOLS (Using them like regular buttons)
+  // ============================================================================
+
+  /*
+   * Built-in tools have default IDs:
+   * - Theme Switcher: "__builtin-theme-switcher"
+   * - Display Mode Switcher: "__builtin-display-mode-switcher"
+   * - Size Changer: "__builtin-size-changer"
+   *
+   * You can customize their IDs in the builtInToolsConfig:
+   */
+
+  // Example 1: Get a built-in tool
+  const themeTool = basicToolbar.getTool("__builtin-theme-switcher");
+  console.log("Theme tool:", themeTool);
+
+  // Example 2: Update a built-in tool (e.g., disable it temporarily)
+  // basicToolbar.updateTool("__builtin-theme-switcher", { disabled: true });
+
+  // Example 3: Remove a built-in tool (if you want to hide it)
+  // basicToolbar.removeTool("__builtin-size-changer");
+
+  // Example 4: Add tools AFTER initialization (appears AFTER tool sets)
+  // This is useful for adding tools dynamically or after toolbar is created
+  basicToolbar.addTool({
+    id: "reset-preferences",
+    label: "Reset",
+    icon: "edit.refresh",
+    tooltip: "Reset all preferences to defaults",
+    action: () => {
+      // Programmatically change toolbar settings
+      basicToolbar.setTheme("system");
+      basicToolbar.setSize("medium");
+      basicToolbar.setDisplayMode("icon");
+      console.log("Preferences reset to defaults");
+    },
+  });
+
+  // You can also add a separator before these post-toolset tools
+  // basicToolbar.addTool({ type: "separator" });
+
+  // Example 5: Add built-in tools with custom configuration
+  /*
+  // You can add built-in tools anywhere in your tools array with custom config:
+  const customToolbar = new Toolbar({
+    container: "#custom-toolbar",
+    builtInToolsConfig: {
+      theme: {
+        id: "my-theme-btn", // Custom ID instead of "__builtin-theme-switcher"
+        tooltip: "Switch Color Theme",
+        forceDisplayMode: "icon", // Always show as icon only
+      },
+    },
+    toolSets: [{
+      name: "My Tools",
+      tools: [
+        // Built-in tool with custom config
+        { builtIn: "theme", config: {
+          id: "my-theme-btn",
+          tooltip: "Switch Theme",
+          forceDisplayMode: "icon"
+        }},
+        { type: "separator" },
+        // Regular tools
+        { id: "save", label: "Save", icon: "...", action: () => {} },
+      ]
+    }]
+  });
+
+  // Now you can access it with custom ID
+  const myThemeTool = customToolbar.getTool("my-theme-btn");
+  */
+
+  // Example 6: Programmatically trigger built-in tool actions
+  // You can't directly call their action, but you can use the toolbar methods:
+  document.addEventListener("keydown", (e) => {
+    // Ctrl+T for theme toggle
+    if (e.ctrlKey && e.key === "t") {
+      e.preventDefault();
+      const themes = basicToolbar.options.themes;
+      const currentIndex = themes.indexOf(basicToolbar.getTheme());
+      const nextIndex = (currentIndex + 1) % themes.length;
+      basicToolbar.setTheme(themes[nextIndex]);
+    }
+
+    // Ctrl+D for display mode toggle
+    if (e.ctrlKey && e.key === "d") {
+      e.preventDefault();
+      basicToolbar.toggleDisplayMode();
+    }
+
+    // Ctrl+Plus for next size
+    if (e.ctrlKey && e.key === "+") {
+      e.preventDefault();
+      basicToolbar.nextSize();
+    }
+
+    // Ctrl+Minus for previous size
+    if (e.ctrlKey && e.key === "-") {
+      e.preventDefault();
+      basicToolbar.previousSize();
+    }
+  });
 
   // ============================================================================
   // LOGIC HANDLERS (For manual implementation - not needed with built-in tools)

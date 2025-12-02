@@ -26,6 +26,7 @@
 .toolbar__tools.icon_only .toolbar__tool {
   min-width: auto;
   width: map.get($toolbar-sizes, tool, default);
+  border-radius: 50%;
 }
 
 // Label only (hide icons, show only labels)

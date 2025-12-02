@@ -11,24 +11,17 @@ export default class Tooltip {
   static init(element) {
     const text = element.getAttribute("data-tooltip-text");
     const shortcut = element.getAttribute("data-tooltip-shortcut");
-    const position = element.getAttribute("data-tooltip-position") || "auto";
+    const position = element.getAttribute("data-tooltip-position") || "top";
 
     if (!text) return;
 
-    // If no shortcut, use simple CSS-based tooltip with position awareness
+    // If no shortcut, use simple CSS-based tooltip with fixed position
     if (!shortcut) {
       element.classList.add("has-tooltip");
       element.setAttribute("data-tooltip", text);
 
-      // Apply position if specified (and not auto/auto-vertical)
-      if (position !== "auto" && position !== "auto-vertical") {
-        element.classList.add(`tooltip-${position}`);
-      } else {
-        // Auto-detect position on hover
-        element.addEventListener("mouseenter", () => {
-          this._adjustPositionForEdges(element, position === "auto-vertical");
-        });
-      }
+      // Always apply the specified position (no auto-detection)
+      element.classList.add(`tooltip-${position}`);
       return;
     }
 
@@ -64,17 +57,10 @@ export default class Tooltip {
 
     element.appendChild(wrapper);
 
-    // Show/hide handlers with position awareness
+    // Show/hide handlers with fixed position
     const showHandler = () => {
-      if (position === "auto" || position === "auto-vertical") {
-        this._adjustWrapperPositionForEdges(
-          element,
-          wrapper,
-          position === "auto-vertical"
-        );
-      } else {
-        wrapper.classList.add(`tooltip-${position}`);
-      }
+      // Always use the specified position from data attribute
+      wrapper.classList.add(`tooltip-${position}`);
       wrapper.classList.add("show");
     };
 
