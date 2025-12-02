@@ -9,6 +9,7 @@
 @use "../../mixins" as *;
 
 // Component modules
+@use "themes"; // Global theme system
 @use "base";
 @use "header";
 @use "tool";

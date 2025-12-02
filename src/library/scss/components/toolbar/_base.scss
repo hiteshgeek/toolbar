@@ -67,13 +67,46 @@
     .toolbar__tools {
       flex-direction: row;
     }
+
+    .toolbar__header {
+      flex-direction: row;
+    }
   }
 
   &--vertical {
     flex-direction: column;
+    width: auto;
+    min-width: map.get($toolbar-sizes, tool, default);
 
     .toolbar__tools {
       flex-direction: column;
+      gap: map.get($toolbar-spacing, gap);
+    }
+
+    .toolbar__header {
+      flex-direction: column;
+      gap: map.get($toolbar-spacing, gap);
+    }
+
+    .toolbar__tool {
+      width: 100%;
+      min-width: map.get($toolbar-sizes, tool, default);
+    }
+
+    // Icon-only mode in vertical
+    .toolbar__tools.icon_only .toolbar__tool {
+      width: map.get($toolbar-sizes, tool, default);
+      min-width: map.get($toolbar-sizes, tool, default);
+    }
+
+    // Set indicator vertical layout
+    .toolbar__set-indicator {
+      flex-direction: column;
+      margin-left: 0;
+      margin-top: map.get($toolbar-spacing, gap);
+      padding: map.get($toolbar-spacing, gap) 0;
+      border-left: none;
+      border-top: 1px solid var(--toolbar-separator);
     }
   }
 

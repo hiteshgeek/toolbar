@@ -132,12 +132,13 @@
 /* Left position */
 .has-tooltip.tooltip-left::before {
   left: auto;
-  right: calc(100% + 10px);
+  right: calc(100% + 6px);
   top: 50%;
   bottom: auto;
-  transform: translateY(-50%) translateX(-4px);
+  transform: translateY(-50%) translateX(4px);
 }
 .has-tooltip.tooltip-left:hover::before {
+  right: calc(100% + 10px);
   transform: translateY(-50%) translateX(0);
 }
 .has-tooltip.tooltip-left::after {
@@ -153,13 +154,14 @@
 
 /* Right position */
 .has-tooltip.tooltip-right::before {
-  left: calc(100% + 10px);
+  left: calc(100% + 6px);
   right: auto;
   top: 50%;
   bottom: auto;
-  transform: translateY(-50%) translateX(4px);
+  transform: translateY(-50%) translateX(-4px);
 }
 .has-tooltip.tooltip-right:hover::before {
+  left: calc(100% + 10px);
   transform: translateY(-50%) translateX(0);
 }
 .has-tooltip.tooltip-right::after {
@@ -238,22 +240,24 @@
 
   &.tooltip-left {
     left: auto;
-    right: calc(100% + 10px);
+    right: calc(100% + 6px);
     top: 50%;
     bottom: auto;
-    transform: translateY(-50%) translateX(-4px);
+    transform: translateY(-50%) translateX(4px);
     &.show {
+      right: calc(100% + 10px);
       transform: translateY(-50%) translateX(0);
     }
   }
 
   &.tooltip-right {
-    left: calc(100% + 10px);
+    left: calc(100% + 6px);
     right: auto;
     top: 50%;
     bottom: auto;
-    transform: translateY(-50%) translateX(4px);
+    transform: translateY(-50%) translateX(-4px);
     &.show {
+      left: calc(100% + 10px);
       transform: translateY(-50%) translateX(0);
     }
   }

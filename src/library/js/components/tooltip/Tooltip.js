@@ -20,13 +20,13 @@ export default class Tooltip {
       element.classList.add("has-tooltip");
       element.setAttribute("data-tooltip", text);
 
-      // Apply position if specified (and not auto)
-      if (position !== "auto") {
+      // Apply position if specified (and not auto/auto-vertical)
+      if (position !== "auto" && position !== "auto-vertical") {
         element.classList.add(`tooltip-${position}`);
       } else {
         // Auto-detect position on hover
         element.addEventListener("mouseenter", () => {
-          this._adjustPositionForEdges(element);
+          this._adjustPositionForEdges(element, position === "auto-vertical");
         });
       }
       return;
@@ -66,8 +66,12 @@ export default class Tooltip {
 
     // Show/hide handlers with position awareness
     const showHandler = () => {
-      if (position === "auto") {
-        this._adjustWrapperPositionForEdges(element, wrapper);
+      if (position === "auto" || position === "auto-vertical") {
+        this._adjustWrapperPositionForEdges(
+          element,
+          wrapper,
+          position === "auto-vertical"
+        );
       } else {
         wrapper.classList.add(`tooltip-${position}`);
       }
@@ -107,12 +111,14 @@ export default class Tooltip {
       ".has-tooltip[data-tooltip]:not([data-tooltip-text])"
     );
     simpleTooltips.forEach((element) => {
+      const position = element.getAttribute("data-tooltip-position");
       if (
-        element.getAttribute("data-tooltip-position") === "auto" ||
-        !element.getAttribute("data-tooltip-position")
+        position === "auto" ||
+        position === "auto-vertical" ||
+        !position
       ) {
         element.addEventListener("mouseenter", () => {
-          this._adjustPositionForEdges(element);
+          this._adjustPositionForEdges(element, position === "auto-vertical");
         });
       }
     });
@@ -152,9 +158,11 @@ export default class Tooltip {
 
   /**
    * Adjust tooltip position based on viewport edges (for CSS-based tooltips)
+   * @param {HTMLElement} element - Element to adjust
+   * @param {boolean} preferVertical - Whether to prefer left/right over top/bottom
    * @private
    */
-  static _adjustPositionForEdges(element) {
+  static _adjustPositionForEdges(element, preferVertical = false) {
     const rect = element.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
@@ -189,15 +197,19 @@ export default class Tooltip {
       tooltipHeight,
       viewportWidth,
       viewportHeight,
-      false
+      false,
+      preferVertical
     );
   }
 
   /**
    * Adjust tooltip wrapper position based on viewport edges (for JS-based tooltips)
+   * @param {HTMLElement} element - Element to adjust
+   * @param {HTMLElement} wrapper - Tooltip wrapper element
+   * @param {boolean} preferVertical - Whether to prefer left/right over top/bottom
    * @private
    */
-  static _adjustWrapperPositionForEdges(element, wrapper) {
+  static _adjustWrapperPositionForEdges(element, wrapper, preferVertical = false) {
     const rect = element.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
@@ -227,12 +239,21 @@ export default class Tooltip {
       wrapperRect.height,
       viewportWidth,
       viewportHeight,
-      true
+      true,
+      preferVertical
     );
   }
 
   /**
    * Helper to calculate and apply class
+   * @param {HTMLElement} target - Target element to apply class to
+   * @param {DOMRect} elementRect - Element bounding rect
+   * @param {number} tooltipWidth - Tooltip width
+   * @param {number} tooltipHeight - Tooltip height
+   * @param {number} vpWidth - Viewport width
+   * @param {number} vpHeight - Viewport height
+   * @param {boolean} isWrapper - Whether target is a wrapper element
+   * @param {boolean} preferVertical - Whether to prefer left/right over top/bottom
    * @private
    */
   static _applyCalculatedPosition(
@@ -242,37 +263,64 @@ export default class Tooltip {
     tooltipHeight,
     vpWidth,
     vpHeight,
-    isWrapper
+    isWrapper,
+    preferVertical = false
   ) {
     const spaceTop = elementRect.top;
     const spaceBottom = vpHeight - elementRect.bottom;
     const spaceLeft = elementRect.left;
     const spaceRight = vpWidth - elementRect.right;
     const elementCenterX = elementRect.left + elementRect.width / 2;
+    const elementCenterY = elementRect.top + elementRect.height / 2;
 
     const minVSpace = tooltipHeight + 15;
     const minHSpace = tooltipWidth + 15;
 
     const halfW = tooltipWidth / 2;
+    const halfH = tooltipHeight / 2;
     const overflowLeft = elementCenterX - halfW < 10;
     const overflowRight = elementCenterX + halfW > vpWidth - 10;
+    const overflowTop = elementCenterY - halfH < 10;
+    const overflowBottom = elementCenterY + halfH > vpHeight - 10;
 
-    // Priority: top > bottom > left > right
-    if (spaceTop >= minVSpace && !overflowLeft && !overflowRight) {
-      target.classList.add(isWrapper ? "tooltip-top" : "tooltip-top");
-    } else if (spaceBottom >= minVSpace && !overflowLeft && !overflowRight) {
-      target.classList.add(isWrapper ? "tooltip-bottom" : "tooltip-bottom");
-    } else if (spaceLeft >= minHSpace) {
-      target.classList.add(isWrapper ? "tooltip-left" : "tooltip-left");
-    } else if (spaceRight >= minHSpace) {
-      target.classList.add(isWrapper ? "tooltip-right" : "tooltip-right");
+    // For vertical toolbars, prioritize left/right positioning
+    if (preferVertical) {
+      // Priority: right > left > top > bottom
+      if (spaceRight >= minHSpace && !overflowTop && !overflowBottom) {
+        target.classList.add("tooltip-right");
+      } else if (spaceLeft >= minHSpace && !overflowTop && !overflowBottom) {
+        target.classList.add("tooltip-left");
+      } else if (spaceTop >= minVSpace && !overflowLeft && !overflowRight) {
+        target.classList.add("tooltip-top");
+      } else if (spaceBottom >= minVSpace && !overflowLeft && !overflowRight) {
+        target.classList.add("tooltip-bottom");
+      } else {
+        // Fallback to side with most space
+        const max = Math.max(spaceTop, spaceBottom, spaceLeft, spaceRight);
+        if (max === spaceRight) target.classList.add("tooltip-right");
+        else if (max === spaceLeft) target.classList.add("tooltip-left");
+        else if (max === spaceTop) target.classList.add("tooltip-top");
+        else target.classList.add("tooltip-bottom");
+      }
     } else {
-      // Fallback
-      const max = Math.max(spaceTop, spaceBottom, spaceLeft, spaceRight);
-      if (max === spaceTop) target.classList.add("tooltip-top");
-      else if (max === spaceBottom) target.classList.add("tooltip-bottom");
-      else if (max === spaceLeft) target.classList.add("tooltip-left");
-      else target.classList.add("tooltip-right");
+      // For horizontal toolbars, prioritize top/bottom positioning
+      // Priority: top > bottom > left > right
+      if (spaceTop >= minVSpace && !overflowLeft && !overflowRight) {
+        target.classList.add("tooltip-top");
+      } else if (spaceBottom >= minVSpace && !overflowLeft && !overflowRight) {
+        target.classList.add("tooltip-bottom");
+      } else if (spaceLeft >= minHSpace) {
+        target.classList.add("tooltip-left");
+      } else if (spaceRight >= minHSpace) {
+        target.classList.add("tooltip-right");
+      } else {
+        // Fallback
+        const max = Math.max(spaceTop, spaceBottom, spaceLeft, spaceRight);
+        if (max === spaceTop) target.classList.add("tooltip-top");
+        else if (max === spaceBottom) target.classList.add("tooltip-bottom");
+        else if (max === spaceLeft) target.classList.add("tooltip-left");
+        else target.classList.add("tooltip-right");
+      }
     }
   }
 

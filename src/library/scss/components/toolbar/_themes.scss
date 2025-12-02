@@ -1,0 +1,79 @@
+// ============================================================================
+// GLOBAL THEME SYSTEM
+// Apply themes to document body with data-theme attribute
+// ============================================================================
+@use "sass:map";
+@use "../../variables" as *;
+@use "../../mixins" as *;
+
+// ============================================================================
+// LIGHT THEME (Default)
+// ============================================================================
+:root,
+[data-theme="light"] {
+  --toolbar-bg: rgba(255, 255, 255, 0.8);
+  --toolbar-bg-solid: #ffffff;
+  --toolbar-bg-tool: rgba(0, 0, 0, 0.05);
+  --toolbar-bg-hover: rgba(0, 0, 0, 0.1);
+  --toolbar-text: #1f2937;
+  --toolbar-icon: #4b5563;
+  --toolbar-border: rgba(0, 0, 0, 0.1);
+  --toolbar-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --toolbar-separator: rgba(0, 0, 0, 0.1);
+
+  // Background colors
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-tertiary: #e5e7eb;
+
+  // Text colors
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+
+  // Border colors
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+
+  color-scheme: light;
+}
+
+// ============================================================================
+// DARK THEME
+// ============================================================================
+[data-theme="dark"] {
+  --toolbar-bg: rgba(30, 30, 30, 0.8);
+  --toolbar-bg-solid: #1e1e1e;
+  --toolbar-bg-tool: rgba(255, 255, 255, 0.05);
+  --toolbar-bg-hover: rgba(255, 255, 255, 0.1);
+  --toolbar-text: #e5e7eb;
+  --toolbar-icon: #9ca3af;
+  --toolbar-border: rgba(255, 255, 255, 0.1);
+  --toolbar-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --toolbar-separator: rgba(255, 255, 255, 0.1);
+
+  // Background colors
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
+  --bg-tertiary: #0f172a;
+
+  // Text colors
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+
+  // Border colors
+  --border-primary: #374151;
+  --border-secondary: #4b5563;
+
+  color-scheme: dark;
+}
+
+// ============================================================================
+// BODY THEME APPLICATION
+// ============================================================================
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 300ms ease, color 300ms ease;
+}

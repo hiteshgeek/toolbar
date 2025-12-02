@@ -6,6 +6,7 @@
 import { ToolbarEventEmitter } from "./ToolbarEmitter.js";
 import { icons } from "../../utils/icons.js";
 import Tooltip from "../tooltip/Tooltip.js"; // Import the Tooltip class
+import { BuiltInToolsManager } from "./builtins/index.js"; // Import BuiltInToolsManager
 
 export default class Toolbar {
   static _resolveIcon(iconPath) {
@@ -45,6 +46,9 @@ export default class Toolbar {
 
     // Define valid display modes
     this.validDisplayModes = ["icon", "label", "both"];
+
+    // Define valid orientations
+    this.validOrientations = ["horizontal", "vertical"];
 
     // Validate and set position (default to bottom-center if invalid)
     let position = options.position || "bottom-center";
@@ -91,10 +95,21 @@ export default class Toolbar {
       displayMode = "both";
     }
 
+    // Validate and set orientation (default to horizontal if invalid)
+    let orientation = options.orientation || "horizontal";
+    if (!this.validOrientations.includes(orientation)) {
+      console.warn(
+        `Invalid orientation: ${orientation}. Defaulting to horizontal. Valid orientations are: ${this.validOrientations.join(
+          ", "
+        )}`
+      );
+      orientation = "horizontal";
+    }
+
     this.options = {
       container: options.container || document.body,
       position: position,
-      orientation: options.orientation || "horizontal",
+      orientation: orientation,
       theme: options.theme || "system", // Default to system preference
       size: size, // Toolbar size: small, medium, large
       draggable: options.draggable !== undefined ? options.draggable : false,
@@ -115,12 +130,25 @@ export default class Toolbar {
         options.showSetIndicator !== undefined
           ? options.showSetIndicator
           : true,
+      // Built-in tools configuration
+      builtInTools: {
+        theme: options.builtInTools?.theme !== undefined ? options.builtInTools.theme : true,
+        displayMode: options.builtInTools?.displayMode !== undefined ? options.builtInTools.displayMode : true,
+        size: options.builtInTools?.size !== undefined ? options.builtInTools.size : true,
+      },
+      builtInToolsConfig: {
+        theme: options.builtInToolsConfig?.theme || {},
+        displayMode: options.builtInToolsConfig?.displayMode || {},
+        size: options.builtInToolsConfig?.size || {},
+      },
+      themes: options.themes || ["light", "dark", "system"], // Available themes
       onToolClick: options.onToolClick || null,
       onStateChange: options.onStateChange || null,
       onThemeChange: options.onThemeChange || null,
       onPositionChange: options.onPositionChange || null,
       onToolSetChange: options.onToolSetChange || null,
       onSizeChange: options.onSizeChange || null,
+      onOrientationChange: options.onOrientationChange || null,
     };
 
     // Validate allowedSnapPositions
@@ -156,16 +184,21 @@ export default class Toolbar {
     this.snapHintsContainer = null;
     this.setIndicator = null;
 
+    // Initialize BuiltInToolsManager
+    this.builtInToolsManager = new BuiltInToolsManager(this);
+
     this._init();
   }
 
   _init() {
     this._createElements();
+    this._registerBuiltInTools(); // Register built-in tools first
     this._registerTools();
     this._registerGroups();
     this._addNavigationButton(); // Add navigation button for initial set
     this._attachEventListeners();
     this._setupSystemThemeListener();
+    this._applyTheme(this.options.theme); // Apply initial theme
     this._render();
   }
 
@@ -289,6 +322,14 @@ export default class Toolbar {
 
   // NOTE: This is empty now because we handle styles in CSS
   _applyStyles() {}
+
+  /**
+   * Register built-in tools (theme switcher, display mode switcher, size changer)
+   * Now handled by BuiltInToolsManager
+   */
+  _registerBuiltInTools() {
+    this.builtInToolsManager.initialize();
+  }
 
   _registerTools() {
     // If toolSets are defined, use the current tool set
@@ -843,8 +884,29 @@ export default class Toolbar {
    * Set the toolbar theme dynamically
    * @param {string} theme - 'light', 'dark', or 'system'
    */
+  /**
+   * Apply theme to document body
+   */
+  _applyTheme(theme) {
+    // Get effective theme (resolve 'system' to actual theme)
+    let effectiveTheme = theme;
+    if (theme === "system" && window.matchMedia) {
+      effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+
+    // Apply theme to document body
+    document.body.setAttribute("data-theme", effectiveTheme);
+
+    // Also apply to toolbar element if it exists
+    if (this.element) {
+      this.element.setAttribute("data-theme", effectiveTheme);
+    }
+  }
+
   setTheme(theme) {
-    const validThemes = ["light", "dark", "system"];
+    const validThemes = this.options.themes;
     if (!validThemes.includes(theme)) {
       console.warn(
         `Invalid theme: ${theme}. Valid themes are: ${validThemes.join(", ")}`
@@ -859,6 +921,9 @@ export default class Toolbar {
     this.element.classList.remove(`toolbar--${previousTheme}`);
     // Add new theme class
     this.element.classList.add(`toolbar--${theme}`);
+
+    // Apply theme to document
+    this._applyTheme(theme);
 
     // Update system theme listener
     this._removeSystemThemeListener();
@@ -961,6 +1026,58 @@ export default class Toolbar {
     const prevIndex =
       (currentIndex - 1 + this.validSizes.length) % this.validSizes.length;
     this.setSize(this.validSizes[prevIndex]);
+  }
+
+  /**
+   * Set toolbar orientation
+   * @param {string} orientation - "horizontal" or "vertical"
+   */
+  setOrientation(orientation) {
+    if (!this.validOrientations.includes(orientation)) {
+      console.warn(
+        `Invalid orientation: ${orientation}. Valid orientations are: ${this.validOrientations.join(
+          ", "
+        )}`
+      );
+      return;
+    }
+
+    const previousOrientation = this.options.orientation;
+    this.options.orientation = orientation;
+
+    // Remove old orientation class
+    this.element.classList.remove(`toolbar--${previousOrientation}`);
+    // Add new orientation class
+    this.element.classList.add(`toolbar--${orientation}`);
+
+    // Update tooltip positioning for all tools
+    this._updateTooltipPositions();
+
+    this.eventEmitter.emit("orientation:change", {
+      orientation: orientation,
+      previousOrientation: previousOrientation,
+    });
+
+    if (this.options.onOrientationChange) {
+      this.options.onOrientationChange(orientation);
+    }
+  }
+
+  /**
+   * Get the current orientation setting
+   * @returns {string} Current orientation ('horizontal' or 'vertical')
+   */
+  getOrientation() {
+    return this.options.orientation;
+  }
+
+  /**
+   * Toggle between horizontal and vertical orientation
+   */
+  toggleOrientation() {
+    const newOrientation =
+      this.options.orientation === "horizontal" ? "vertical" : "horizontal";
+    this.setOrientation(newOrientation);
   }
 
   /**
@@ -1113,6 +1230,9 @@ export default class Toolbar {
     // Clear existing tools and groups
     this.tools.clear();
     this.groups.clear();
+
+    // Re-register built-in tools first (so they stay visible across tool sets)
+    this._registerBuiltInTools();
 
     // Re-register tools and groups from new set
     this._registerTools();
@@ -1444,15 +1564,45 @@ export default class Toolbar {
   }
 
   /**
-   * Helper to determine best tooltip position based on toolbar location
+   * Helper to determine best tooltip position based on toolbar location and orientation
    */
   _determineTooltipPosition() {
     const pos = this.options.position;
+    const orientation = this.options.orientation;
+
+    // For vertical toolbars, prefer left/right positioning
+    if (orientation === "vertical") {
+      if (pos.includes("left")) return "right";
+      if (pos.includes("right")) return "left";
+      // If toolbar is centered or floating, use auto with vertical preference
+      return "auto-vertical";
+    }
+
+    // For horizontal toolbars, prefer top/bottom positioning
     if (pos.includes("bottom")) return "top";
     if (pos.includes("top")) return "bottom";
     if (pos.includes("left")) return "right";
     if (pos.includes("right")) return "left";
     return "auto"; // Default or floating
+  }
+
+  /**
+   * Update tooltip positions for all elements when orientation changes
+   * @private
+   */
+  _updateTooltipPositions() {
+    const newPosition = this._determineTooltipPosition();
+
+    // Update all tool buttons
+    const toolButtons = this.element.querySelectorAll("[data-tooltip-text]");
+    toolButtons.forEach((button) => {
+      button.setAttribute("data-tooltip-position", newPosition);
+    });
+
+    // Update collapse button if it exists
+    if (this.collapseButton) {
+      this.collapseButton.setAttribute("data-tooltip-position", newPosition);
+    }
   }
 
   _getCollapseIcon() {
@@ -1470,6 +1620,11 @@ export default class Toolbar {
   destroy() {
     // Remove system theme listener
     this._removeSystemThemeListener();
+
+    // Destroy built-in tools manager
+    if (this.builtInToolsManager) {
+      this.builtInToolsManager.destroy();
+    }
 
     if (this.element && this.element.parentNode) {
       // Cleanup tooltips inside

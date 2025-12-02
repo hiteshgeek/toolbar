@@ -19,9 +19,7 @@
   .toolbar--vertical & {
     flex-direction: column;
     border-bottom: none;
-    border-right: 1px solid var(--toolbar-border);
     margin-bottom: 0;
-    margin-right: map.get($toolbar-spacing, gap);
   }
 }
 

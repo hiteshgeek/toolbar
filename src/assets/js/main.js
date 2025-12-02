@@ -1,8 +1,9 @@
 if (typeof window !== "undefined") {
   // ============================================================================
-  // CONFIGURATION
+  // CONFIGURATION (No longer needed - built-in tools handle this automatically)
   // ============================================================================
 
+  /* Kept for reference - these configs were used for manual tool implementations
   const THEME_CONFIG = {
     order: ["system", "light", "dark"],
     icons: {
@@ -39,6 +40,7 @@ if (typeof window !== "undefined") {
       label: "Labels Only",
     },
   };
+  */
 
   // ============================================================================
   // INITIALIZATION
@@ -48,11 +50,42 @@ if (typeof window !== "undefined") {
     container: "#app",
     size: "medium", //small, medium, large
     position: "bottom-center",
+    orientation: "horizontal", // "horizontal" or "vertical"
     theme: "system",
     displayMode: "icon", // "icon", "label", or "both"
     draggable: true,
     snapToPosition: true,
     allowedSnapPositions: ["bottom-left", "bottom-center", "bottom-right"],
+    // Built-in tools configuration (enabled by default)
+    builtInTools: {
+      theme: true, // Enable theme switcher
+      displayMode: true, // Enable display mode switcher
+      size: true, // Enable size changer
+    },
+    // Optional: Customize built-in tools
+    builtInToolsConfig: {
+      theme: {
+        // id: "custom-theme-switcher", // Optional custom ID
+        // tooltip: "Change theme", // Optional custom tooltip
+        // forceDisplayMode: "icon", // Optional force display mode
+        // Custom icons (optional)
+        iconLight: "utils.sun",
+        iconDark: "utils.moon",
+        iconSystem: "utils.monitor",
+        // Custom labels (optional)
+        labelLight: "Light",
+        labelDark: "Dark",
+        labelSystem: "System",
+      },
+      displayMode: {
+        // Custom configuration for display mode switcher (optional)
+      },
+      size: {
+        // Custom configuration for size changer (optional)
+      },
+    },
+    // Available themes (default: ["light", "dark", "system"])
+    themes: ["light", "dark", "system"],
     // Define multiple tool sets
     toolSets: [
       {
@@ -116,6 +149,12 @@ if (typeof window !== "undefined") {
           targetSet: "next", // Go to specific set index
         },
         tools: [
+          // NOTE: Theme, Size, and Display Mode switchers are now built-in tools!
+          // They are automatically added by the toolbar when builtInTools options are enabled.
+          // The code below shows how they were manually implemented before.
+          // You can still customize them using builtInToolsConfig option (see initialization above).
+
+          /* MANUAL IMPLEMENTATION (No longer needed - kept for reference)
           {
             id: "theme-toggle",
             label: "Theme",
@@ -152,6 +191,9 @@ if (typeof window !== "undefined") {
             },
           },
           { type: "separator" },
+          */
+
+          // Other example tools
           {
             id: "zoom-in",
             label: "Zoom In",
@@ -165,6 +207,18 @@ if (typeof window !== "undefined") {
             icon: "navigation.minus",
             tooltip: "Zoom out",
             action: () => console.log("Zoom out"),
+          },
+          { type: "separator" },
+          {
+            id: "toggle-orientation",
+            label: "Toggle Layout",
+            icon: "utils.columns",
+            tooltip: "Toggle Horizontal/Vertical",
+            action: () => {
+              basicToolbar.toggleOrientation();
+              const newOrientation = basicToolbar.getOrientation();
+              console.log("Orientation toggled to:", newOrientation);
+            },
           },
           { type: "separator" },
           {
@@ -223,27 +277,41 @@ if (typeof window !== "undefined") {
     onToolSetChange: (setIndex, currentSet) => {
       console.log(`Switched to tool set ${setIndex}:`, currentSet.name);
     },
-    onThemeChange: (theme) => {
-      // Update visual state when theme changes
-      updateThemeVisuals(theme);
+    // Optional: Add custom callbacks (built-in tools handle their own updates)
+    onThemeChange: (theme, isSystemChange) => {
+      console.log("Theme changed to:", theme, "System change:", isSystemChange);
+      // Save to localStorage or perform other custom actions
+      localStorage.setItem("toolbarTheme", theme);
     },
     onSizeChange: (size) => {
-      // Update visual state when size changes
-      updateSizeVisuals(size);
+      console.log("Size changed to:", size);
+      // Save to localStorage or perform other custom actions
+      localStorage.setItem("toolbarSize", size);
     },
   });
 
-  // Listen for display mode changes
+  // Listen for display mode changes (optional - for custom behavior)
   basicToolbar.on("displayMode:change", (data) => {
-    updateDisplayModeVisuals(data.displayMode);
+    console.log("Display mode changed to:", data.displayMode);
+    // Save to localStorage or perform other custom actions
+    localStorage.setItem("toolbarDisplayMode", data.displayMode);
+  });
+
+  // Listen for orientation changes (optional - for custom behavior)
+  basicToolbar.on("orientation:change", (data) => {
+    console.log("Orientation changed to:", data.orientation);
+    console.log("Previous orientation:", data.previousOrientation);
+    // Save to localStorage or perform other custom actions
+    localStorage.setItem("toolbarOrientation", data.orientation);
   });
 
   window.basicToolbar = basicToolbar;
 
   // ============================================================================
-  // LOGIC HANDLERS
+  // LOGIC HANDLERS (For manual implementation - not needed with built-in tools)
   // ============================================================================
 
+  /* NO LONGER NEEDED - Built-in tools handle their own updates
   const updateThemeVisuals = (theme) => {
     const newIcon = THEME_CONFIG.icons[theme];
     const stateLabel = THEME_CONFIG.labels[theme];
@@ -255,7 +323,6 @@ if (typeof window !== "undefined") {
         label: stateLabel,
         icon: newIcon,
         tooltip: `Theme: ${stateLabel}`,
-        // Maintain the active class during updates
         customClass: "toolbar__tool--active",
       });
     }
@@ -264,12 +331,10 @@ if (typeof window !== "undefined") {
   const updateSizeVisuals = (size) => {
     const stateLabel = SIZE_CONFIG.labels[size];
 
-    // Only update if size toggle exists in current tool set
     const sizeTool = basicToolbar.tools.get("size-toggle");
     if (sizeTool) {
       basicToolbar.updateTool("size-toggle", {
         tooltip: `Size: ${stateLabel}`,
-        // Maintain the active class during updates
         customClass: "toolbar__tool--active",
       });
     }
@@ -279,26 +344,18 @@ if (typeof window !== "undefined") {
     const stateLabel = LABEL_MODE_CONFIG.labels[mode];
     const newIcon = LABEL_MODE_CONFIG.icons[mode];
 
-    // Only update if display mode toggle exists in current tool set
     const displayTool = basicToolbar.tools.get("toggle-display-mode");
     if (displayTool) {
       basicToolbar.updateTool("toggle-display-mode", {
         label: stateLabel,
         icon: newIcon,
         tooltip: `Display: ${stateLabel}`,
-        // Maintain the active class during updates
         customClass: "toolbar__tool--active",
       });
     }
   };
 
-  // ============================================================================
   // ENFORCE "ALWAYS ACTIVE" STATE
-  // ============================================================================
-
-  // When other toggle buttons are clicked, the Toolbar library
-  // normally removes the active class from all other buttons.
-  // We listen for this event and immediately re-apply the active class to our control buttons.
   basicToolbar.on("tool:activate", () => {
     const themeBtn = basicToolbar.toolsContainer.querySelector(
       '[data-tool-id="theme-toggle"]'
@@ -324,22 +381,81 @@ if (typeof window !== "undefined") {
       displayBtn.setAttribute("aria-pressed", "true");
     }
   });
+  */
 
   // Listen for tool set changes
   basicToolbar.on("toolset:change", (data) => {
     console.log("Tool set changed:", data);
-    // Re-initialize button visual states when switching tool sets
-    updateThemeVisuals(basicToolbar.getTheme());
-    updateSizeVisuals(basicToolbar.getSize());
-    updateDisplayModeVisuals(basicToolbar.getDisplayMode());
+    // Built-in tools automatically update themselves when tool sets change
+    // No manual visual updates needed anymore!
   });
 
   // ============================================================================
-  // STARTUP
+  // ADDITIONAL EXAMPLES
   // ============================================================================
 
-  // Initialize button states
-  updateThemeVisuals(basicToolbar.getTheme());
-  updateSizeVisuals(basicToolbar.getSize());
-  updateDisplayModeVisuals(basicToolbar.getDisplayMode());
+  // Example: Create a toolbar with built-in tools disabled
+  /*
+  const minimalToolbar = new Toolbar({
+    container: "#app",
+    displayMode: "icon",
+    size: "medium",
+    // Disable all built-in tools
+    builtInTools: {
+      theme: false,
+      displayMode: false,
+      size: false,
+    },
+    tools: [
+      {
+        id: "custom-tool",
+        label: "Custom Tool",
+        icon: "navigation.search",
+        action: () => console.log("Custom tool clicked"),
+      },
+    ],
+  });
+  */
+
+  // Example: Disable only specific built-in tools
+  /*
+  const partialToolbar = new Toolbar({
+    container: "#app",
+    // Enable only theme switcher
+    builtInTools: {
+      theme: true,
+      displayMode: false, // Disable display mode switcher
+      size: false, // Disable size changer
+    },
+  });
+  */
+
+  // Example: Vertical toolbar
+  /*
+  const verticalToolbar = new Toolbar({
+    container: "#app",
+    orientation: "vertical", // Vertical layout
+    position: "center-left",
+    displayMode: "icon",
+    size: "medium",
+    draggable: true,
+    tools: [
+      { id: "tool1", icon: "navigation.search", action: () => {} },
+      { id: "tool2", icon: "navigation.settings", action: () => {} },
+    ],
+  });
+  */
+
+  // Example: Toggle orientation programmatically
+  /*
+  // Toggle between horizontal and vertical
+  toolbar.toggleOrientation();
+
+  // Set specific orientation
+  toolbar.setOrientation("vertical");
+
+  // Get current orientation
+  const currentOrientation = toolbar.getOrientation();
+  console.log(currentOrientation); // "horizontal" or "vertical"
+  */
 }
