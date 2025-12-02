@@ -50,7 +50,9 @@ export default class Toolbar {
     let position = options.position || "bottom-center";
     if (!this.validPositions.includes(position)) {
       console.warn(
-        `Invalid position: ${position}. Defaulting to bottom-center. Valid positions are: ${this.validPositions.join(", ")}`
+        `Invalid position: ${position}. Defaulting to bottom-center. Valid positions are: ${this.validPositions.join(
+          ", "
+        )}`
       );
       position = "bottom-center";
     }
@@ -59,15 +61,21 @@ export default class Toolbar {
     let size = options.size || "medium";
     if (!this.validSizes.includes(size)) {
       console.warn(
-        `Invalid size: ${size}. Defaulting to medium. Valid sizes are: ${this.validSizes.join(", ")}`
+        `Invalid size: ${size}. Defaulting to medium. Valid sizes are: ${this.validSizes.join(
+          ", "
+        )}`
       );
       size = "medium";
     }
 
     // Validate and set displayMode (default to "both" if invalid)
     // Support legacy showLabels option for backwards compatibility
-    let displayMode = options.displayMode !== undefined ? options.displayMode :
-                      (options.showLabels !== undefined ? options.showLabels : "both");
+    let displayMode =
+      options.displayMode !== undefined
+        ? options.displayMode
+        : options.showLabels !== undefined
+        ? options.showLabels
+        : "both";
 
     // Handle legacy boolean values for backwards compatibility
     if (typeof displayMode === "boolean") {
@@ -76,7 +84,9 @@ export default class Toolbar {
 
     if (!this.validDisplayModes.includes(displayMode)) {
       console.warn(
-        `Invalid displayMode: ${displayMode}. Defaulting to "both". Valid modes are: ${this.validDisplayModes.join(", ")}`
+        `Invalid displayMode: ${displayMode}. Defaulting to "both". Valid modes are: ${this.validDisplayModes.join(
+          ", "
+        )}`
       );
       displayMode = "both";
     }
@@ -102,7 +112,9 @@ export default class Toolbar {
       toolSets: options.toolSets || null, // Array of tool sets
       defaultToolSet: options.defaultToolSet || 0, // Index of default set
       showSetIndicator:
-        options.showSetIndicator !== undefined ? options.showSetIndicator : true,
+        options.showSetIndicator !== undefined
+          ? options.showSetIndicator
+          : true,
       onToolClick: options.onToolClick || null,
       onStateChange: options.onStateChange || null,
       onThemeChange: options.onThemeChange || null,
@@ -324,6 +336,9 @@ export default class Toolbar {
     e.preventDefault();
     this.state.isDragging = true;
 
+    // NEW: Show overlay immediately on drag start
+    this._showOverlay();
+
     const parent = this.element.offsetParent || document.body;
     const rect = this.element.getBoundingClientRect();
     const parentRect = parent.getBoundingClientRect();
@@ -357,6 +372,9 @@ export default class Toolbar {
     const onMouseMove = this._onDragMove.bind(this);
     const onMouseUp = () => {
       this.state.isDragging = false;
+
+      // NEW: Hide overlay on drag end
+      this._hideOverlay();
 
       // Hide snap hints
       if (this.options.snapToPosition) {
@@ -399,6 +417,36 @@ export default class Toolbar {
     // Highlight nearest snap position if snap mode is enabled
     if (this.options.snapToPosition) {
       this._highlightNearestSnapHint();
+    }
+  }
+
+  /**
+   * Create and append the drag overlay
+   * @private
+   */
+  _showOverlay() {
+    // Prevent creating multiple overlays
+    if (this.overlay) return;
+
+    this.overlay = document.createElement("div");
+    this.overlay.className = "toolbar--overlay";
+
+    // Append to the same container the toolbar lives in
+    if (this.element && this.element.parentNode) {
+      this.element.parentNode.appendChild(this.overlay);
+    }
+  }
+
+  /**
+   * Remove the drag overlay
+   * @private
+   */
+  _hideOverlay() {
+    if (this.overlay) {
+      if (this.overlay.parentNode) {
+        this.overlay.parentNode.removeChild(this.overlay);
+      }
+      this.overlay = null;
     }
   }
 
@@ -452,7 +500,9 @@ export default class Toolbar {
     if (!this.snapHintsContainer) return;
 
     const nearestPosition = this._findNearestSnapPosition();
-    const hints = this.snapHintsContainer.querySelectorAll(".toolbar__snap-hint");
+    const hints = this.snapHintsContainer.querySelectorAll(
+      ".toolbar__snap-hint"
+    );
 
     hints.forEach((hint) => {
       if (hint.dataset.position === nearestPosition) {
@@ -895,7 +945,9 @@ export default class Toolbar {
 
     if (!this.validDisplayModes.includes(mode)) {
       console.warn(
-        `Invalid displayMode: ${mode}. Valid modes are: ${this.validDisplayModes.join(", ")}`
+        `Invalid displayMode: ${mode}. Valid modes are: ${this.validDisplayModes.join(
+          ", "
+        )}`
       );
       return;
     }
@@ -914,7 +966,11 @@ export default class Toolbar {
       });
 
     // Remove all label-related classes
-    this.toolsContainer.classList.remove("with_label", "label_only", "icon_only");
+    this.toolsContainer.classList.remove(
+      "with_label",
+      "label_only",
+      "icon_only"
+    );
 
     // Add appropriate class based on mode
     if (mode === "both") {
@@ -991,7 +1047,9 @@ export default class Toolbar {
    * Cycle to the next display mode
    */
   nextDisplayMode() {
-    const currentIndex = this.validDisplayModes.indexOf(this.options.displayMode);
+    const currentIndex = this.validDisplayModes.indexOf(
+      this.options.displayMode
+    );
     const nextIndex = (currentIndex + 1) % this.validDisplayModes.length;
     this.setDisplayMode(this.validDisplayModes[nextIndex]);
   }

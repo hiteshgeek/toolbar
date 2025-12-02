@@ -35,10 +35,11 @@
   position: absolute;
   width: 60px;
   aspect-ratio: 1;
-  border: 2px dashed var(--toolbar-primary-color);
+  border: 6px dashed var(--toolbar-primary-color);
   border-radius: 50%;
   background: color-mix(in srgb, var(--toolbar-primary-color) 10%, transparent);
   backdrop-filter: blur(4px);
+
   transition: all map.get($toolbar-animation, duration, fast) ease;
   opacity: 0.4;
 
@@ -52,6 +53,7 @@
     width: 12px;
     height: 12px;
     background: var(--toolbar-primary-color);
+    background: #fff;
     border-radius: 50%;
     opacity: 0.6;
     animation: pulse 2s ease-in-out infinite;

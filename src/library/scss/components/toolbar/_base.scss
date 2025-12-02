@@ -315,6 +315,11 @@
 // ============================================================================
 // TOOLBAR TOOLS CONTAINER
 // ============================================================================
+
+.toolbar.toolbar--dragging .toolbar__tools {
+  display: none;
+}
+
 .toolbar__tools {
   @include flex-start;
   gap: map.get($toolbar-spacing, gap);
