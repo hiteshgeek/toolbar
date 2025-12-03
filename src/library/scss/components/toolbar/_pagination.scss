@@ -1,0 +1,107 @@
+// ============================================================================
+// TOOLBAR PAGINATION / NAVIGATION STYLES
+// ============================================================================
+@use "sass:map";
+@use "../../variables" as *;
+@use "../../mixins" as *;
+
+// ============================================================================
+// NAVIGATION BUTTONS
+// ============================================================================
+.toolbar__nav-btn {
+  @include reset-button;
+  @include flex-center;
+  @include hover-background;
+
+  position: relative;
+  width: map.get($toolbar-sizes, tool, default);
+  height: map.get($toolbar-sizes, tool, default);
+  min-width: map.get($toolbar-sizes, tool, default);
+  padding: 0;
+  color: var(--toolbar-text);
+  background: var(--toolbar-bg-tool);
+  border-radius: 50%;
+  transition: transform map.get($toolbar-animation, duration, fast) ease,
+    background-color map.get($toolbar-animation, duration, fast) ease,
+    opacity map.get($toolbar-animation, duration, fast) ease;
+  box-shadow: var(--toolbar-shadow);
+  flex-shrink: 0;
+  @include elevation("xs");
+
+  svg {
+    width: map.get($toolbar-sizes, icon, medium);
+    height: map.get($toolbar-sizes, icon, medium);
+    fill: var(--toolbar-icon);
+    transition: fill map.get($toolbar-animation, duration, fast) ease;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--toolbar-bg-hover);
+    @include elevation("sm");
+    transform: scale(1.05);
+
+    svg {
+      fill: var(--toolbar-text);
+    }
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95) !important;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &--prev {
+    // Positioned at start
+    order: -1;
+  }
+
+  &--next {
+    // Positioned at end
+    order: 9999;
+  }
+}
+
+// ============================================================================
+// SIZE VARIANTS FOR NAVIGATION BUTTONS
+// ============================================================================
+
+// Small size
+.toolbar--size-small .toolbar__nav-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+
+  svg {
+    width: map.get($toolbar-sizes, icon, small);
+    height: map.get($toolbar-sizes, icon, small);
+  }
+}
+
+// Medium size (default)
+.toolbar--size-medium .toolbar__nav-btn {
+  width: map.get($toolbar-sizes, tool, default);
+  height: map.get($toolbar-sizes, tool, default);
+  min-width: map.get($toolbar-sizes, tool, default);
+
+  svg {
+    width: map.get($toolbar-sizes, icon, medium);
+    height: map.get($toolbar-sizes, icon, medium);
+  }
+}
+
+// Large size
+.toolbar--size-large .toolbar__nav-btn {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+
+  svg {
+    width: map.get($toolbar-sizes, icon, large);
+    height: map.get($toolbar-sizes, icon, large);
+  }
+}

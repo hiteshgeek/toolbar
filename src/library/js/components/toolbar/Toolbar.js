@@ -92,6 +92,14 @@ export default class Toolbar {
         ? options.showLabels
         : "both";
 
+    // Force icon-only mode for small toolbar size to save space
+    if (size === "small" && displayMode !== "icon") {
+      console.info(
+        "[Toolbar] Forcing icon-only display mode for small toolbar size to optimize space"
+      );
+      displayMode = "icon";
+    }
+
     // Handle legacy boolean values for backwards compatibility
     if (typeof displayMode === "boolean") {
       displayMode = displayMode ? "both" : "icon";
@@ -179,6 +187,9 @@ export default class Toolbar {
       isDragging: false,
       snapHintsVisible: false,
       currentToolSet: this.options.defaultToolSet,
+      currentPage: 0,
+      totalPages: 1,
+      hasOverflow: false,
     };
 
     this.tools = new Map();
@@ -204,7 +215,14 @@ export default class Toolbar {
     this._attachEventListeners();
     this._setupSystemThemeListener();
     this._applyTheme(this.options.theme); // Apply initial theme
+
+    // Check if we need pagination BEFORE rendering
+    this._preCalculatePagination();
+
     this._render();
+
+    // Apply overflow check immediately after render (synchronously)
+    this._checkOverflow();
   }
 
   /**
@@ -402,6 +420,15 @@ export default class Toolbar {
     }
     this.toolsContainer.addEventListener("click", this._onToolClick.bind(this));
     this.element.addEventListener("keydown", this._onKeyDown.bind(this));
+
+    // Add resize listener for responsive overflow detection
+    this._resizeHandler = () => {
+      clearTimeout(this._resizeTimeout);
+      this._resizeTimeout = setTimeout(() => {
+        this._checkOverflow();
+      }, 150); // Debounce resize events
+    };
+    window.addEventListener("resize", this._resizeHandler);
   }
 
   _onDragStart(e) {
@@ -1472,6 +1499,16 @@ export default class Toolbar {
       .querySelectorAll("[data-tool-id]")
       .forEach((el) => Tooltip.remove(el));
 
+    // Preserve navigation buttons if they exist
+    const prevBtn = this.prevButton;
+    const nextBtn = this.nextButton;
+    if (prevBtn && prevBtn.parentNode) {
+      prevBtn.parentNode.removeChild(prevBtn);
+    }
+    if (nextBtn && nextBtn.parentNode) {
+      nextBtn.parentNode.removeChild(nextBtn);
+    }
+
     this.toolsContainer.innerHTML = "";
     const groupedTools = new Map();
     const ungroupedTools = [];
@@ -1514,6 +1551,18 @@ export default class Toolbar {
       if (this.setIndicator) {
         this.toolsContainer.appendChild(this.setIndicator);
       }
+    }
+
+    // Restore navigation buttons if they were present
+    if (prevBtn) {
+      const wasVisible = prevBtn.style.display !== "none";
+      this.toolsContainer.insertBefore(prevBtn, this.toolsContainer.firstChild);
+      prevBtn.style.display = wasVisible ? "" : "none";
+    }
+    if (nextBtn) {
+      const wasVisible = nextBtn.style.display !== "none";
+      this.toolsContainer.appendChild(nextBtn);
+      nextBtn.style.display = wasVisible ? "" : "none";
     }
   }
 
@@ -1715,6 +1764,468 @@ export default class Toolbar {
   }
 
   /**
+   * Pre-calculate if pagination will be needed based on tool count
+   * This runs before render to prevent initial overflow
+   * @private
+   */
+  _preCalculatePagination() {
+    const isHorizontal = this.options.orientation === "horizontal";
+
+    // Get available space from window (entire screen)
+    const availableSpace = isHorizontal ? window.innerWidth : window.innerHeight;
+
+    // Max toolbar size: 85% of screen width (horizontal), 45% of screen height (vertical)
+    // Using more conservative thresholds to trigger pagination earlier
+    const maxToolbarSize = isHorizontal
+      ? availableSpace * 0.85
+      : availableSpace * 0.45;
+
+    // Tool sizes based on toolbar size and display mode
+    const toolSizes = {
+      small: 32,
+      medium: 40,
+      large: 52,
+    };
+
+    // Gap sizes
+    const gapSizes = {
+      small: 6,
+      medium: 12,
+      large: 16,
+    };
+
+    const toolSize = toolSizes[this.options.size] || toolSizes.medium;
+    const gap = gapSizes[this.options.size] || gapSizes.medium;
+
+    // Count registered tools (excluding separators and groups)
+    const toolCount = this.tools.size;
+
+    // Estimate tool width based on display mode
+    let estimatedToolWidth = toolSize;
+    if (this.options.displayMode === "both") {
+      // Icon + label + padding: roughly 2x the base size
+      estimatedToolWidth = toolSize * 2.5;
+    } else if (this.options.displayMode === "label") {
+      // Label only: estimate average label width
+      estimatedToolWidth = 100; // Average label width
+    }
+
+    // Estimate toolbar size: tools + gaps + some padding
+    const estimatedToolbarSize =
+      toolCount * estimatedToolWidth + (toolCount - 1) * gap + 40; // 40px for padding
+
+    console.log("[PAGINATION PRE-CALC]", {
+      availableSpace,
+      maxToolbarSize,
+      toolCount,
+      estimatedToolWidth,
+      estimatedToolbarSize,
+      willOverflow: estimatedToolbarSize > maxToolbarSize,
+      displayMode: this.options.displayMode,
+      size: this.options.size,
+    });
+
+    // If estimated size exceeds max, enable pagination immediately
+    if (estimatedToolbarSize > maxToolbarSize) {
+      this.state.hasOverflow = true;
+      this._enablePagination();
+    }
+  }
+
+  /**
+   * Check if toolbar has overflow and needs pagination
+   * @private
+   */
+  _checkOverflow() {
+    if (!this.toolsContainer || !this.element) return;
+
+    const isHorizontal = this.options.orientation === "horizontal";
+
+    // Get available space from window (entire screen)
+    const availableSpace = isHorizontal ? window.innerWidth : window.innerHeight;
+
+    // Get toolbar dimensions
+    const toolbarSize = isHorizontal
+      ? this.element.offsetWidth
+      : this.element.offsetHeight;
+
+    // Max toolbar size: 85% of screen width (horizontal), 45% of screen height (vertical)
+    // Using more conservative thresholds to trigger pagination earlier
+    const maxToolbarSize = isHorizontal
+      ? availableSpace * 0.85
+      : availableSpace * 0.45;
+
+    // Check if overflow exists
+    const hasOverflow = toolbarSize > maxToolbarSize;
+
+    console.log("[OVERFLOW CHECK]", {
+      availableSpace,
+      maxToolbarSize,
+      toolbarSize,
+      hasOverflow,
+      previousState: this.state.hasOverflow,
+      willChange: hasOverflow !== this.state.hasOverflow,
+    });
+
+    // Always apply pagination if overflow is detected (even if state hasn't changed)
+    // This handles the case where pre-calc set hasOverflow=true but couldn't apply pagination yet
+    if (hasOverflow) {
+      console.log("[OVERFLOW] Applying pagination");
+      this.state.hasOverflow = true;
+      this._enablePagination();
+    } else if (this.state.hasOverflow) {
+      // Only disable if we were previously in overflow state
+      console.log("[OVERFLOW] Disabling pagination");
+      this.state.hasOverflow = false;
+      this._disablePagination();
+    }
+  }
+
+  /**
+   * Calculate maximum visible tools based on screen size and toolbar size
+   * @private
+   * @returns {number} Maximum number of visible tools
+   */
+  _calculateMaxVisibleTools() {
+    const isHorizontal = this.options.orientation === "horizontal";
+
+    // Get available space from window (entire screen)
+    const availableSpace = isHorizontal ? window.innerWidth : window.innerHeight;
+
+    // Max toolbar size: 85% of screen width (horizontal), 45% of screen height (vertical)
+    // Using more conservative thresholds to trigger pagination earlier
+    const maxToolbarSize = isHorizontal
+      ? availableSpace * 0.85
+      : availableSpace * 0.45;
+
+    // Tool sizes based on toolbar size
+    const toolSizes = {
+      small: 32,
+      medium: 40,
+      large: 52,
+    };
+
+    // Gap sizes
+    const gapSizes = {
+      small: 6,
+      medium: 12,
+      large: 16,
+    };
+
+    const baseToolSize = toolSizes[this.options.size] || toolSizes.medium;
+    const gap = gapSizes[this.options.size] || gapSizes.medium;
+
+    // Calculate actual tool width based on display mode
+    let toolWidth = baseToolSize;
+    let usedMeasurement = false;
+
+    // Always measure from actual tools if they exist (to account for forceDisplayMode)
+    const allTools = this.toolsContainer.querySelectorAll(
+      ".toolbar__tool:not(.toolbar__nav-btn)"
+    );
+
+    // Count separators in the toolbar
+    const separators = this.toolsContainer.querySelectorAll(".toolbar__separator");
+    const separatorCount = separators.length;
+    const separatorWidth = 1; // 1px width
+    const separatorMargin = 16; // 8px on each side = 16px total
+    const separatorTotalWidth = separatorWidth + separatorMargin; // 17px per separator
+
+    if (allTools.length > 0) {
+      // Force reflow to ensure CSS has been applied
+      void this.toolsContainer.offsetHeight;
+
+      // Measure all tools and use the maximum width to be safe
+      let maxToolWidth = 0;
+      let minToolWidth = Infinity;
+      const toolWidths = [];
+
+      allTools.forEach((tool) => {
+        // Force individual reflow
+        void tool.offsetHeight;
+        const width = tool.offsetWidth;
+        toolWidths.push(width);
+        if (width > maxToolWidth) {
+          maxToolWidth = width;
+        }
+        if (width < minToolWidth) {
+          minToolWidth = width;
+        }
+      });
+
+      if (maxToolWidth > 0) {
+        toolWidth = maxToolWidth;
+        usedMeasurement = true;
+        console.log("[CALCULATE MAX TOOLS] Tool widths:", toolWidths);
+        console.log("[CALCULATE MAX TOOLS] Min/Max tool width:", minToolWidth, "/", maxToolWidth);
+      }
+    } else {
+      // Fallback to estimates based on display mode
+      if (this.options.displayMode === "both") {
+        toolWidth = baseToolSize * 2.5;
+      } else if (this.options.displayMode === "label") {
+        toolWidth = 100;
+      }
+      console.log("[CALCULATE MAX TOOLS] Using estimated tool width:", toolWidth);
+    }
+
+    // Reserved space for navigation buttons (prev + next + gaps)
+    const navButtonSpace = (baseToolSize + gap) * 2 + gap * 2;
+
+    // Toolbar padding: 12px 20px = 40px horizontal total
+    const toolbarPadding = 40;
+
+    // Space taken by separators
+    const separatorSpace = separatorCount * separatorTotalWidth;
+
+    // Available space for tools (max toolbar size minus nav buttons, toolbar padding, and separators)
+    const toolSpace = maxToolbarSize - navButtonSpace - toolbarPadding - separatorSpace;
+
+    // Calculate how many tools fit (accounting for gaps between tools)
+    const maxTools = Math.floor(toolSpace / (toolWidth + gap));
+
+    console.log("[CALCULATE MAX TOOLS]", {
+      availableSpace,
+      maxToolbarSize,
+      baseToolSize,
+      gap,
+      toolWidth,
+      usedMeasurement,
+      displayMode: this.options.displayMode,
+      navButtonSpace,
+      toolbarPadding,
+      separatorCount,
+      separatorSpace,
+      toolSpace,
+      maxTools: Math.max(3, maxTools),
+    });
+
+    return Math.max(3, maxTools); // Minimum 3 tools
+  }
+
+  /**
+   * Enable pagination mode
+   * @private
+   */
+  _enablePagination() {
+    console.log("[ENABLE PAGINATION] Called");
+
+    // Hide drag handle when pagination is active to save space
+    if (this.dragHandle) {
+      this.dragHandle.style.display = "none";
+      console.log("[ENABLE PAGINATION] Hiding drag handle");
+    }
+
+    // Hide header if it becomes empty (only had drag handle)
+    if (this.header) {
+      // Check if header has any visible children besides the drag handle
+      const visibleChildren = Array.from(this.header.children).filter(
+        child => child !== this.dragHandle && child.style.display !== "none"
+      );
+
+      if (visibleChildren.length === 0) {
+        this.header.style.display = "none";
+        console.log("[ENABLE PAGINATION] Hiding empty header");
+      }
+    }
+
+    // Create navigation buttons if they don't exist
+    if (!this.prevButton) {
+      console.log("[ENABLE PAGINATION] Creating navigation buttons");
+      this._createNavigationButtons();
+    }
+
+    // Show navigation buttons
+    if (this.prevButton) this.prevButton.style.display = "";
+    if (this.nextButton) this.nextButton.style.display = "";
+
+    // Apply pagination only if tools exist
+    const toolElements = Array.from(
+      this.toolsContainer.querySelectorAll(".toolbar__tool:not(.toolbar__nav-btn)")
+    );
+
+    console.log("[ENABLE PAGINATION] Tool count:", toolElements.length);
+
+    if (toolElements.length > 0) {
+      const maxVisible = this._calculateMaxVisibleTools();
+      this.state.totalPages = Math.ceil(toolElements.length / maxVisible);
+      this.state.currentPage = 0;
+
+      console.log("[ENABLE PAGINATION]", {
+        totalTools: toolElements.length,
+        maxVisible,
+        totalPages: this.state.totalPages,
+        currentPage: this.state.currentPage,
+      });
+
+      this._updatePagination();
+    } else {
+      console.log("[ENABLE PAGINATION] No tools found in DOM yet");
+    }
+  }
+
+  /**
+   * Disable pagination mode
+   * @private
+   */
+  _disablePagination() {
+    // Show drag handle when pagination is disabled
+    if (this.dragHandle) {
+      this.dragHandle.style.display = "";
+    }
+
+    // Show header again when pagination is disabled
+    if (this.header) {
+      this.header.style.display = "";
+    }
+
+    // Hide navigation buttons
+    if (this.prevButton) this.prevButton.style.display = "none";
+    if (this.nextButton) this.nextButton.style.display = "none";
+
+    // Show all tools
+    const toolElements = this.toolsContainer.querySelectorAll(".toolbar__tool");
+    toolElements.forEach((tool) => {
+      tool.style.display = "";
+    });
+
+    // Show all separators again
+    const separators = this.toolsContainer.querySelectorAll(".toolbar__separator");
+    separators.forEach((separator) => {
+      separator.style.display = "";
+    });
+
+    this.state.totalPages = 1;
+    this.state.currentPage = 0;
+  }
+
+  /**
+   * Create previous/next navigation buttons
+   * @private
+   */
+  _createNavigationButtons() {
+    // Create previous button
+    this.prevButton = document.createElement("button");
+    this.prevButton.className = "toolbar__nav-btn toolbar__nav-btn--prev";
+    this.prevButton.innerHTML =
+      this.options.orientation === "horizontal"
+        ? Toolbar._resolveIcon("navigation.chevron_left")
+        : Toolbar._resolveIcon("navigation.chevron_up");
+    this.prevButton.setAttribute("aria-label", "Previous tools");
+    this.prevButton.addEventListener("click", () => this._previousPage());
+
+    // Create next button
+    this.nextButton = document.createElement("button");
+    this.nextButton.className = "toolbar__nav-btn toolbar__nav-btn--next";
+    this.nextButton.innerHTML =
+      this.options.orientation === "horizontal"
+        ? Toolbar._resolveIcon("navigation.chevron_right")
+        : Toolbar._resolveIcon("navigation.chevron_down");
+    this.nextButton.setAttribute("aria-label", "Next tools");
+    this.nextButton.addEventListener("click", () => this._nextPage());
+
+    // Insert buttons
+    this.toolsContainer.insertBefore(
+      this.prevButton,
+      this.toolsContainer.firstChild
+    );
+    this.toolsContainer.appendChild(this.nextButton);
+
+    // Initially hide them
+    this.prevButton.style.display = "none";
+    this.nextButton.style.display = "none";
+  }
+
+  /**
+   * Update pagination - show/hide tools based on current page
+   * @private
+   */
+  _updatePagination() {
+    const maxVisible = this._calculateMaxVisibleTools();
+    const toolElements = Array.from(
+      this.toolsContainer.querySelectorAll(
+        ".toolbar__tool:not(.toolbar__nav-btn)"
+      )
+    );
+
+    const startIdx = this.state.currentPage * maxVisible;
+    const endIdx = startIdx + maxVisible;
+
+    console.log("[UPDATE PAGINATION]", {
+      maxVisible,
+      totalTools: toolElements.length,
+      currentPage: this.state.currentPage,
+      totalPages: this.state.totalPages,
+      startIdx,
+      endIdx,
+      visibleCount: endIdx - startIdx,
+    });
+
+    toolElements.forEach((tool, idx) => {
+      if (idx >= startIdx && idx < endIdx) {
+        tool.style.display = "";
+      } else {
+        tool.style.display = "none";
+      }
+    });
+
+    // Hide all separators when pagination is active
+    const separators = this.toolsContainer.querySelectorAll(".toolbar__separator");
+    separators.forEach((separator) => {
+      separator.style.display = "none";
+    });
+
+    // Update button states
+    if (this.prevButton) {
+      this.prevButton.disabled = this.state.currentPage === 0;
+    }
+    if (this.nextButton) {
+      this.nextButton.disabled =
+        this.state.currentPage >= this.state.totalPages - 1;
+    }
+
+    // After updating pagination, log the final toolbar width and tool details
+    setTimeout(() => {
+      const visibleTools = Array.from(
+        this.toolsContainer.querySelectorAll(".toolbar__tool:not(.toolbar__nav-btn)")
+      ).filter(tool => tool.style.display !== "none");
+
+      const toolWidths = visibleTools.map(tool => ({
+        width: tool.offsetWidth,
+        label: tool.textContent.trim().substring(0, 20),
+        classes: tool.className
+      }));
+
+      console.log("[UPDATE PAGINATION] Final toolbar width:", this.element.offsetWidth);
+      console.log("[UPDATE PAGINATION] Visible tool count:", visibleTools.length);
+      console.log("[UPDATE PAGINATION] Tool widths:", toolWidths);
+      console.log("[UPDATE PAGINATION] Toolbar container width:", this.toolsContainer.offsetWidth);
+    }, 0);
+  }
+
+  /**
+   * Go to next page
+   * @private
+   */
+  _nextPage() {
+    if (this.state.currentPage < this.state.totalPages - 1) {
+      this.state.currentPage++;
+      this._updatePagination();
+    }
+  }
+
+  /**
+   * Go to previous page
+   * @private
+   */
+  _previousPage() {
+    if (this.state.currentPage > 0) {
+      this.state.currentPage--;
+      this._updatePagination();
+    }
+  }
+
+  /**
    * Save current settings to localStorage using StorageManager
    * @private
    */
@@ -1730,6 +2241,18 @@ export default class Toolbar {
   destroy() {
     // Remove system theme listener
     this._removeSystemThemeListener();
+
+    // Remove resize listener
+    if (this._resizeHandler) {
+      window.removeEventListener("resize", this._resizeHandler);
+      this._resizeHandler = null;
+    }
+
+    // Clear resize timeout
+    if (this._resizeTimeout) {
+      clearTimeout(this._resizeTimeout);
+      this._resizeTimeout = null;
+    }
 
     // Destroy built-in tools manager
     if (this.builtInToolsManager) {
