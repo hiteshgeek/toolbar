@@ -1326,6 +1326,9 @@ export default class Toolbar {
     // Re-render toolbar
     this._render();
 
+    // Check for overflow after rendering new tool set
+    this._checkOverflow();
+
     // Update set indicator if it exists
     this._updateSetIndicator();
 
@@ -1924,16 +1927,30 @@ export default class Toolbar {
       ".toolbar__tool:not(.toolbar__nav-btn)"
     );
 
-    // Count separators in the toolbar
+    // Count and measure separators in the toolbar
     const separators = this.toolsContainer.querySelectorAll(".toolbar__separator");
     const separatorCount = separators.length;
-    const separatorWidth = 1; // 1px width
-    const separatorMargin = 16; // 8px on each side = 16px total
-    const separatorTotalWidth = separatorWidth + separatorMargin; // 17px per separator
+    let separatorTotalWidth = 17; // Default estimate: 1px width + 16px margin
 
     if (allTools.length > 0) {
       // Force reflow to ensure CSS has been applied
       void this.toolsContainer.offsetHeight;
+
+      // Measure separator width including margins if separators exist
+      if (separators.length > 0) {
+        const firstSeparator = separators[0];
+        const computedStyle = window.getComputedStyle(firstSeparator);
+        const marginLeft = parseFloat(computedStyle.marginLeft) || 0;
+        const marginRight = parseFloat(computedStyle.marginRight) || 0;
+        const width = firstSeparator.offsetWidth || 1;
+        separatorTotalWidth = width + marginLeft + marginRight;
+        console.log("[CALCULATE MAX TOOLS] Separator measured width:", {
+          width,
+          marginLeft,
+          marginRight,
+          total: separatorTotalWidth
+        });
+      }
 
       // Measure all tools and use the maximum width to be safe
       let maxToolWidth = 0;
@@ -2016,6 +2033,12 @@ export default class Toolbar {
       console.log("[ENABLE PAGINATION] Hiding drag handle");
     }
 
+    // Hide set indicator when pagination is active to save space
+    if (this.setIndicator) {
+      this.setIndicator.style.display = "none";
+      console.log("[ENABLE PAGINATION] Hiding set indicator");
+    }
+
     // Hide header if it becomes empty (only had drag handle)
     if (this.header) {
       // Check if header has any visible children besides the drag handle
@@ -2072,6 +2095,11 @@ export default class Toolbar {
     // Show drag handle when pagination is disabled
     if (this.dragHandle) {
       this.dragHandle.style.display = "";
+    }
+
+    // Show set indicator when pagination is disabled
+    if (this.setIndicator) {
+      this.setIndicator.style.display = "";
     }
 
     // Show header again when pagination is disabled
